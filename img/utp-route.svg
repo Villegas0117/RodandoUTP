@@ -1,0 +1,11 @@
+<svg width="520" height="370" viewBox="0 0 520 370" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="rg" x1="71" y1="32" x2="466" y2="338" gradientUnits="userSpaceOnUse"><stop stop-color="#183E2F"/><stop offset="1" stop-color="#0C241A"/></linearGradient></defs>
+<rect x="20" y="18" width="480" height="334" rx="36" fill="url(#rg)" stroke="#8AF7B5" stroke-opacity=".13"/>
+<path d="M83 289C112 251 139 257 166 218C197 174 234 208 270 161C303 118 342 150 371 113C392 86 421 83 451 91" stroke="#45E58D" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 12"/>
+<circle cx="84" cy="289" r="15" fill="#B4FF66"/><circle cx="84" cy="289" r="6" fill="#0B2118"/><circle cx="450" cy="91" r="17" fill="#45E58D"/><path d="M443 91L448 96L458 84" stroke="#062116" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="330" y="50" width="105" height="38" rx="12" fill="#081812" stroke="#45E58D" stroke-opacity=".22"/><text x="382" y="74" text-anchor="middle" fill="#DFFFF0" font-family="Arial" font-size="13" font-weight="700">UTP</text>
+<rect x="52" y="295" width="130" height="38" rx="12" fill="#081812" stroke="#B4FF66" stroke-opacity=".22"/><text x="117" y="319" text-anchor="middle" fill="#DFFFF0" font-family="Arial" font-size="12" font-weight="700">Punto de salida</text>
+<path d="M122 101L173 70L224 101V155H122V101Z" fill="#DFFFF0" fill-opacity=".9"/><rect x="145" y="118" width="24" height="37" fill="#2B674B"/><rect x="181" y="111" width="22" height="20" fill="#2B674B"/><path d="M115 102H231" stroke="#B4FF66" stroke-width="6" stroke-linecap="round"/>
+<circle cx="291" cy="279" r="42" fill="#102E22" stroke="#45E58D" stroke-opacity=".18"/><path d="M269 281H314M280 268L269 281L280 294M303 268L314 281L303 294" stroke="#45E58D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="248" cy="75" r="7" fill="#B4FF66" fill-opacity=".5"/><circle cx="426" cy="251" r="8" fill="#45E58D" fill-opacity=".45"/>
+</svg>

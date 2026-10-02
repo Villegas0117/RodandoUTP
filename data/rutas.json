@@ -1,0 +1,93 @@
+{
+  "app": "Rodando UTP",
+  "version": "1.0.0",
+  "updated": "2026-09-30",
+  "destination": "Universidad Tecnológica de Puebla",
+  "currency": "MXN",
+  "routes": [
+    {
+      "id": 101,
+      "driver": "Mariana G.",
+      "origin": "Cholula",
+      "meetingPoint": "Plaza San Diego",
+      "destination": "UTP",
+      "departure": "06:55",
+      "arrival": "07:45",
+      "seats": 3,
+      "contribution": 35,
+      "rating": 4.9,
+      "verified": true,
+      "days": ["Lun", "Mar", "Mié", "Jue", "Vie"]
+    },
+    {
+      "id": 102,
+      "driver": "Diego R.",
+      "origin": "Angelópolis",
+      "meetingPoint": "Parque del Arte",
+      "destination": "UTP",
+      "departure": "07:20",
+      "arrival": "08:05",
+      "seats": 2,
+      "contribution": 30,
+      "rating": 4.8,
+      "verified": true,
+      "days": ["Lun", "Mié", "Vie"]
+    },
+    {
+      "id": 103,
+      "driver": "Sofía T.",
+      "origin": "Amozoc",
+      "meetingPoint": "Zócalo de Amozoc",
+      "destination": "UTP",
+      "departure": "12:35",
+      "arrival": "13:05",
+      "seats": 3,
+      "contribution": 22,
+      "rating": 5.0,
+      "verified": true,
+      "days": ["Mar", "Jue"]
+    },
+    {
+      "id": 104,
+      "driver": "Carlos V.",
+      "origin": "Centro",
+      "meetingPoint": "Parque de Analco",
+      "destination": "UTP",
+      "departure": "13:10",
+      "arrival": "13:45",
+      "seats": 1,
+      "contribution": 20,
+      "rating": 4.7,
+      "verified": true,
+      "days": ["Lun", "Mar", "Mié", "Jue"]
+    },
+    {
+      "id": 105,
+      "driver": "Valeria P.",
+      "origin": "La Margarita",
+      "meetingPoint": "Plaza Dorada",
+      "destination": "UTP",
+      "departure": "06:45",
+      "arrival": "07:25",
+      "seats": 2,
+      "contribution": 24,
+      "rating": 4.9,
+      "verified": true,
+      "days": ["Lun", "Mar", "Mié", "Vie"]
+    },
+    {
+      "id": 106,
+      "driver": "Héctor N.",
+      "origin": "Cholula",
+      "meetingPoint": "Recta a Cholula",
+      "destination": "UTP",
+      "departure": "13:00",
+      "arrival": "13:55",
+      "seats": 4,
+      "contribution": 32,
+      "rating": 4.6,
+      "verified": true,
+      "days": ["Lun", "Mié", "Jue"]
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07120f">
+  <meta name="description" content="Rodando UTP conecta a estudiantes de la Universidad Tecnológica de Puebla para compartir trayectos y dividir gastos de gasolina.">
+  <title>Rodando UTP | Viajes entre estudiantes</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="site-header" id="inicio">
+    <nav class="nav shell" aria-label="Navegación principal">
+      <a class="brand" href="#inicio" aria-label="Rodando UTP - Inicio">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span>Rodando <strong>UTP</strong></span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Abrir menú">☰</button>
+      <div class="nav-links" id="navLinks">
+        <a href="#rutas">Rutas</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#seguridad">Seguridad</a>
+        <button class="btn btn-small btn-outline" id="installBtn" hidden>Instalar app</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="status-dot"></span> Comunidad universitaria · Puebla</span>
+        <h1>Comparte el camino.<br><span>Divide la gasolina.</span></h1>
+        <p>Encuentra compañeros de la UTP que pasan cerca de ti, reserva un asiento y llega a clases con menos transbordos, menor costo y una comunidad verificada.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#rutas">Buscar un viaje</a>
+          <button class="btn btn-ghost" id="openPublish">Publicar mi ruta</button>
+        </div>
+        <div class="hero-stats" aria-label="Indicadores del proyecto">
+          <div><strong>2–3</strong><span>transportes evitables</span></div>
+          <div><strong>80 min</strong><span>en traslados largos</span></div>
+          <div><strong>UTP</strong><span>comunidad verificada</span></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="img/hero-carpool.svg" alt="Ilustración de estudiantes compartiendo automóvil rumbo a la UTP">
+        <div class="floating-card route-preview">
+          <span class="mini-icon">↗</span>
+          <div><small>Próxima ruta</small><strong>Cholula → UTP</strong></div>
+          <span class="chip">07:00</span>
+        </div>
+        <div class="floating-card verified-preview">
+          <span class="verified-icon">✓</span>
+          <div><small>Perfil</small><strong>Estudiante verificado</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="search-panel shell" id="rutas">
+      <div class="section-heading compact-heading">
+        <div>
+          <span class="eyebrow">Encuentra tu trayecto</span>
+          <h2>Rutas disponibles</h2>
+        </div>
+        <span class="network-badge" id="networkBadge">● En línea</span>
+      </div>
+
+      <form class="search-grid" id="routeSearch">
+        <label>
+          <span>📍 Salida</span>
+          <select id="originFilter">
+            <option value="">Cualquier zona</option>
+            <option>Cholula</option>
+            <option>Angelópolis</option>
+            <option>Amozoc</option>
+            <option>Centro</option>
+            <option>La Margarita</option>
+          </select>
+        </label>
+        <label>
+          <span>🕒 Turno</span>
+          <select id="timeFilter">
+            <option value="">Cualquier horario</option>
+            <option value="morning">Matutino</option>
+            <option value="afternoon">Vespertino</option>
+          </select>
+        </label>
+        <label>
+          <span>👥 Lugares</span>
+          <select id="seatFilter">
+            <option value="1">1 o más</option>
+            <option value="2">2 o más</option>
+            <option value="3">3 o más</option>
+          </select>
+        </label>
+        <button class="btn btn-primary search-btn" type="submit">Buscar rutas</button>
+      </form>
+
+      <div class="route-meta">
+        <p id="resultText">Cargando rutas disponibles…</p>
+        <button class="text-btn" id="clearFilters" type="button">Limpiar filtros</button>
+      </div>
+      <div class="routes-grid" id="routesGrid" aria-live="polite"></div>
+    </section>
+
+    <section class="feature-section shell" id="como-funciona">
+      <div class="section-heading centered">
+        <span class="eyebrow">Simple desde el primer viaje</span>
+        <h2>¿Cómo funciona Rodando UTP?</h2>
+        <p>La plataforma organiza viajes que ya iban a realizarse y permite dividir únicamente el gasto de gasolina.</p>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card"><span>01</span><div class="step-icon">🎓</div><h3>Verifica tu perfil</h3><p>Regístrate con tus datos universitarios para mantener una comunidad exclusiva de estudiantes.</p></article>
+        <article class="step-card"><span>02</span><div class="step-icon">🛣️</div><h3>Encuentra o publica</h3><p>Busca una ruta cercana a tu zona o publica los asientos libres de tu recorrido habitual.</p></article>
+        <article class="step-card"><span>03</span><div class="step-icon">🤝</div><h3>Comparte el trayecto</h3><p>Reserva, acuerda un punto seguro y divide la aportación de gasolina indicada por el conductor.</p></article>
+      </div>
+    </section>
+
+    <section class="impact-section shell">
+      <div class="impact-card">
+        <div>
+          <span class="eyebrow">Un viaje con sentido</span>
+          <h2>Menos asientos vacíos.<br>Más comunidad.</h2>
+          <p>Rodando UTP busca reducir traslados innecesariamente largos y aprovechar mejor los vehículos que ya se dirigen a la universidad.</p>
+          <div class="impact-points"><span>✓ Aportación solo para gasolina</span><span>✓ Rutas entre estudiantes</span><span>✓ Menos transbordos</span></div>
+        </div>
+        <img src="img/utp-route.svg" alt="Mapa ilustrado de una ruta compartida hacia la UTP">
+      </div>
+    </section>
+
+    <section class="safety-section shell" id="seguridad">
+      <div class="section-heading">
+        <span class="eyebrow">Confianza antes de subir</span>
+        <h2>Seguridad pensada para estudiantes</h2>
+      </div>
+      <div class="safety-grid">
+        <article><div class="safety-icon">✓</div><h3>Perfiles verificados</h3><p>La propuesta limita la comunidad a estudiantes identificados de la UTP.</p></article>
+        <article><div class="safety-icon">★</div><h3>Reputación</h3><p>Conductores y pasajeros pueden evaluar la experiencia después del trayecto.</p></article>
+        <article><div class="safety-icon">⌖</div><h3>Puntos de encuentro</h3><p>Prioriza lugares conocidos, iluminados y fáciles de identificar para abordar.</p></article>
+        <article><div class="safety-icon">☁</div><h3>PWA instalable</h3><p>Se puede instalar desde el navegador y conservar una experiencia básica sin conexión.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <div><a class="brand" href="#inicio"><span class="brand-mark">R</span><span>Rodando <strong>UTP</strong></span></a><p>Proyecto académico de movilidad compartida para la comunidad universitaria.</p></div>
+      <div><strong>Proyecto</strong><a href="#rutas">Buscar rutas</a><a href="#como-funciona">Cómo funciona</a><a href="#seguridad">Seguridad</a></div>
+      <div><strong>PWA</strong><span>HTML + CSS + JavaScript</span><span>Manifest + JSON</span><span>Service Worker</span></div>
+    </div>
+    <div class="shell footer-bottom"><span>© 2026 Rodando UTP</span><span>Hecho para estudiantes que comparten camino.</span></div>
+  </footer>
+
+  <dialog class="modal" id="publishModal">
+    <form method="dialog" class="modal-card" id="publishForm">
+      <button class="modal-close" id="closePublish" type="button" aria-label="Cerrar">×</button>
+      <span class="eyebrow">Conductor estudiante</span>
+      <h2>Publicar una ruta</h2>
+      <p>Agrega un trayecto habitual. Se guardará en este dispositivo para la demostración.</p>
+      <div class="form-grid">
+        <label>Nombre<input id="driverName" required maxlength="40" placeholder="Ej. Andrea M."></label>
+        <label>Zona de salida<select id="publishOrigin" required><option value="">Selecciona</option><option>Cholula</option><option>Angelópolis</option><option>Amozoc</option><option>Centro</option><option>La Margarita</option></select></label>
+        <label>Hora de salida<input id="publishTime" type="time" required></label>
+        <label>Lugares disponibles<input id="publishSeats" type="number" min="1" max="4" value="2" required></label>
+        <label>Aportación (MXN)<input id="publishPrice" type="number" min="10" max="150" value="30" required></label>
+        <label>Punto de encuentro<input id="publishMeeting" maxlength="60" required placeholder="Ej. Plaza San Diego"></label>
+      </div>
+      <button class="btn btn-primary modal-submit" type="submit" value="default">Guardar ruta</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

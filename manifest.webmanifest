@@ -1,0 +1,37 @@
+{
+  "name": "Rodando UTP - Movilidad compartida",
+  "short_name": "Rodando UTP",
+  "description": "PWA para conectar estudiantes de la Universidad Tecnológica de Puebla que desean compartir trayectos y gastos de gasolina.",
+  "lang": "es-MX",
+  "id": "/rodando-utp/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06110e",
+  "theme_color": "#07120f",
+  "categories": ["travel", "education", "social"],
+  "icons": [
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buscar rutas",
+      "short_name": "Rutas",
+      "description": "Ver viajes disponibles hacia la UTP",
+      "url": "./index.html#rutas",
+      "icons": [{ "src": "img/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
