@@ -86,6 +86,19 @@ function filterRoutes() {
 }
 
 async function loadRoutes() {
+  // 1) Se intenta el backend (SQLite).
+  // 2) Si el servidor no responde se cae al JSON estatico para que la PWA
+  //    siga funcionando igual que antes.
+  try {
+    const respuesta = await fetch('/api/rutas', { credentials: 'same-origin' });
+    if (respuesta.ok) {
+      const data = await respuesta.json();
+      routes = [...getLocalRoutes(), ...data.routes];
+      renderRoutes(routes);
+      return;
+    }
+  } catch { /* servidor no disponible: se usa el respaldo */ }
+
   try {
     const response = await fetch('data/rutas.json');
     if (!response.ok) throw new Error('No se pudo cargar el JSON');
@@ -116,41 +129,98 @@ clearFilters.addEventListener('click', () => {
 document.querySelector('#openPublish').addEventListener('click', () => publishModal.showModal());
 document.querySelector('#closePublish').addEventListener('click', () => publishModal.close());
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   const reserveButton = event.target.closest('[data-reserve]');
   if (!reserveButton) return;
   const route = routes.find(item => String(item.id) === reserveButton.dataset.reserve);
   if (!route) return;
   if (route.seats <= 0) return showToast('Esta ruta ya no tiene lugares disponibles.');
+
+  // Con sesion iniciada la reserva se guarda en SQLite; sin servidor se mantiene
+  // el comportamiento local para que la demo siga siendo navegable.
+  try {
+    const respuesta = await fetch('/api/reservas', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: route.id })
+    });
+    const data = await respuesta.json();
+
+    if (respuesta.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!data.ok) return showToast(data.error || 'No fue posible reservar.');
+    if (data.ruta) Object.assign(route, data.ruta);
+    filterRoutes();
+    return showToast(data.mensaje || `Lugar reservado con ${route.driver}.`);
+  } catch { /* servidor no disponible: reserva local */ }
+
   route.seats -= 1;
   filterRoutes();
   showToast(`Lugar reservado con ${route.driver}. Reserva registrada para esta sesión.`);
 });
 
-publishForm.addEventListener('submit', (event) => {
+publishForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const newRoute = {
-    id: Date.now(),
+
+  const datos = {
     driver: document.querySelector('#driverName').value.trim(),
     origin: document.querySelector('#publishOrigin').value,
     meetingPoint: document.querySelector('#publishMeeting').value.trim(),
-    destination: 'UTP',
     departure: document.querySelector('#publishTime').value,
-    arrival: 'Por confirmar',
     seats: Number(document.querySelector('#publishSeats').value),
     contribution: Number(document.querySelector('#publishPrice').value),
+  };
+
+  let nuevaRuta = null;
+
+  // Se intenta guardar en SQLite (queda visible para toda la comunidad).
+  try {
+    const respuesta = await fetch('/api/rutas', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    const data = await respuesta.json();
+
+    if (respuesta.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!data.ok) return showToast(data.error || 'No fue posible publicar la ruta.');
+    nuevaRuta = data.ruta;
+    showToast('Ruta publicada y guardada en la base de datos.');
+  } catch { /* servidor no disponible: se publica solo en local */ }
+
+  const localRoute = nuevaRuta || {
+    id: Date.now(),
+    driver: datos.driver,
+    origin: datos.origin,
+    meetingPoint: datos.meetingPoint,
+    destination: 'UTP',
+    departure: datos.departure,
+    arrival: 'Por confirmar',
+    seats: datos.seats,
+    contribution: datos.contribution,
     rating: 5,
     verified: false,
     days: ['Nueva']
   };
-  const customRoutes = getLocalRoutes();
-  customRoutes.unshift(newRoute);
-  saveLocalRoutes(customRoutes);
-  routes.unshift(newRoute);
+
+  if (!nuevaRuta) {
+    const customRoutes = getLocalRoutes();
+    customRoutes.unshift(localRoute);
+    saveLocalRoutes(customRoutes);
+    showToast('Ruta publicada correctamente en este dispositivo.');
+  }
+
+  routes.unshift(localRoute);
   renderRoutes(routes);
   publishForm.reset();
   publishModal.close();
-  showToast('Ruta publicada correctamente en este dispositivo.');
 });
 
 const navToggle = document.querySelector('#navToggle');
@@ -188,5 +258,19 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+document.querySelector('#logoutBtn')?.addEventListener('click', () => cerrarSesion());
+
+/** Refleja el estado de la sesion en la navegacion y arranca el mapa si aplica. */
+async function iniciarSesionUI() {
+  try {
+    const sesion = await obtenerSesion();
+    pintarSesion(sesion.usuario);
+    if (sesion.autenticado && typeof iniciarMapa === 'function') {
+      await iniciarMapa();
+    }
+  } catch { /* sin servidor la app sigue con el JSON estatico */ }
+}
+
 updateNetworkStatus();
 loadRoutes();
+iniciarSesionUI();

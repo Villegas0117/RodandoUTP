@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07120f">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel de administración | Rodando UTP</title>
+  <link rel="icon" href="img/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span>Rodando <strong>UTP</strong></span>
+      </a>
+      <span class="admin-badge">🛡 Panel de administración</span>
+      <div class="admin-user">
+        <span id="adminName">—</span>
+        <button class="btn btn-small btn-ghost" id="adminLogout" type="button">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-title">
+      <span class="eyebrow">Gestión de la comunidad</span>
+      <h1>Usuarios registrados</h1>
+      <p>Administra las cuentas de la plataforma. Al eliminar un usuario sus rutas y reservas se borran en cascada.</p>
+    </div>
+
+    <div class="stat-grid" id="statGrid"></div>
+
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <h2>Lista de usuarios</h2>
+        <div class="admin-filters">
+          <input type="search" id="searchUsers" placeholder="Buscar por nombre o correo…" aria-label="Buscar usuarios">
+          <select id="filterRole" aria-label="Filtrar por rol">
+            <option value="">Todos los roles</option>
+            <option value="estudiante">Estudiantes</option>
+            <option value="conductor">Conductores</option>
+            <option value="admin">Administradores</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Usuario</th><th>Rol</th><th>Zona</th>
+              <th>Matrícula</th><th>Alta</th><th class="col-acciones">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+            <tr><td colspan="7" class="table-empty">Cargando usuarios…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <h2>Bitácora de actividad</h2>
+        <span class="muted-note">Últimos movimientos registrados en la base de datos</span>
+      </div>
+      <ul class="log-list" id="logList"><li class="table-empty">Cargando…</li></ul>
+    </section>
+
+    <section class="admin-card danger-zone">
+      <div class="admin-card-head">
+        <h2>Zona de riesgo</h2>
+        <span class="muted-note">Solo para reiniciar la demostración</span>
+      </div>
+      <p>Elimina la base de datos y vuelve a sembrar los datos de ejemplo. Todas las cuentas y rutas creadas se perderán.</p>
+      <button class="btn btn-danger" id="resetBtn" type="button">Reiniciar base de datos</button>
+    </section>
+  </main>
+
+  <dialog class="modal" id="confirmModal">
+    <div class="modal-card">
+      <button class="modal-close" id="closeConfirm" type="button" aria-label="Cerrar">×</button>
+      <span class="eyebrow">Confirmación</span>
+      <h2 id="confirmTitle">Eliminar usuario</h2>
+      <p id="confirmText">Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelDelete" type="button">Cancelar</button>
+        <button class="btn btn-danger" id="confirmDelete" type="button">Eliminar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/sesion.js" defer></script>
+  <script src="js/admin.js" defer></script>
+</body>
+</html>

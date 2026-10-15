@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="img/icon-192.png" type="image/png">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/mapa-ia.css">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -23,8 +24,21 @@
       <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Abrir menú">☰</button>
       <div class="nav-links" id="navLinks">
         <a href="#rutas">Rutas</a>
+        <a href="#mapa-ia">Mapa IA</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#seguridad">Seguridad</a>
+
+        <span class="session-box" id="sessionBox" hidden>
+          <span class="session-avatar" id="sessionAvatar">—</span>
+          <span class="session-info">
+            <span class="session-name" id="sessionName">—</span>
+            <span class="session-role" id="sessionRole">—</span>
+          </span>
+        </span>
+
+        <a class="btn btn-small btn-outline" href="login.html" id="loginLink">Iniciar sesión</a>
+        <a class="btn btn-small btn-primary" href="admin.html" id="adminLink" hidden>Administración</a>
+        <button class="btn btn-small btn-ghost" id="logoutBtn" type="button" hidden>Salir</button>
         <button class="btn btn-small btn-outline" id="installBtn" hidden>Instalar app</button>
       </div>
     </nav>
@@ -107,6 +121,70 @@
       <div class="routes-grid" id="routesGrid" aria-live="polite"></div>
     </section>
 
+    <!-- ============================================================
+         MAPA INTELIGENTE POR ZONAS (IA SIMULADA)
+         Esta seccion permanece oculta hasta iniciar sesion.
+         ============================================================ -->
+    <section class="mapa-section shell" id="mapa-ia" hidden>
+      <div class="ia-panel">
+        <div class="ia-panel-head">
+          <div>
+            <span class="eyebrow"><span class="status-dot"></span> Sugerencias inteligentes</span>
+            <h2>Mapa de conductores cercanos</h2>
+            <p>Selecciona tu zona de origen y el sistema te sugiere los conductores mejor calificados para acompañarte a la UTP, priorizando cercanía, horario y disponibilidad.</p>
+          </div>
+          <span class="ia-badge">Simulación sin IA externa</span>
+        </div>
+
+        <div class="guest-box" id="mapaGuest">
+          <p>🔒 Inicia sesión para desbloquear el mapa inteligente y las sugerencias de conductores cercanos. <a href="login.html">Ir al acceso →</a></p>
+        </div>
+
+        <div id="mapaContenido" hidden>
+          <div class="ia-controls">
+            <label>
+              <span>📍 Tu zona de origen</span>
+              <select id="iaZona"><option value="">Selecciona una zona</option></select>
+            </label>
+            <label>
+              <span>🕒 Turno que buscas</span>
+              <select id="iaTurno">
+                <option value="">Cualquier horario</option>
+                <option value="morning">Matutino</option>
+                <option value="afternoon">Vespertino</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="ia-summary" id="iaResumen"></div>
+
+          <div class="ia-map-layout">
+            <div class="ia-map-wrap">
+              <svg class="ia-map" id="mapaBox" viewBox="0 0 980 720" role="img"
+                   aria-label="Mapa por zonas de la región de Puebla con los conductores disponibles">
+                <g id="mapaConexiones"></g>
+                <g id="mapaZonas"></g>
+              </svg>
+              <div class="ia-map-legend">
+                <span><i class="ia-legend-origen"></i> Tu zona</span>
+                <span><i class="ia-legend-utp"></i> UTP</span>
+                <span><i class="ia-legend-normal"></i> Con rutas</span>
+                <span><i class="ia-legend-vacia"></i> Sin rutas</span>
+              </div>
+            </div>
+
+            <div class="sugerencias-box" id="sugerenciasBox" aria-live="polite"></div>
+          </div>
+
+          <p class="ia-note">
+            <strong>Sobre esta simulación:</strong> las sugerencias las produce un motor determinista
+            (grafo de zonas + ponderación de cercanía, horario, reputación y disponibilidad) implementado en
+            <code>ia_simulada.py</code>. <span id="iaAviso">No se conecta a ninguna API de inteligencia artificial externa.</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
     <section class="feature-section shell" id="como-funciona">
       <div class="section-heading centered">
         <span class="eyebrow">Simple desde el primer viaje</span>
@@ -174,6 +252,8 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/sesion.js" defer></script>
+  <script src="js/mapa-ia.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

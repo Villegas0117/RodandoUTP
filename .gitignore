@@ -1,0 +1,12 @@
+# Base de datos (se genera sola al iniciar el servidor)
+data/rodando.db
+data/rodando.db-wal
+data/rodando.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Sistema
+.DS_Store
+Thumbs.db

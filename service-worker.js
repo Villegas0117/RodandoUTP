@@ -1,9 +1,15 @@
-const CACHE_NAME = 'rodando-utp-v1';
+const CACHE_NAME = 'rodando-utp-v2';
 const APP_SHELL = [
   './',
   './index.html',
+  './login.html',
   './css/styles.css',
+  './css/mapa-ia.css',
+  './css/auth.css',
   './js/app.js',
+  './js/sesion.js',
+  './js/auth.js',
+  './js/mapa-ia.js',
   './manifest.webmanifest',
   './data/rutas.json',
   './img/hero-carpool.svg',
@@ -32,6 +38,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // La API SIEMPRE va a la red: cachear respuestas de /api/ devolveria
+  // datos de sesion obsoletos y romperia el login y el panel de admin.
+  if (new URL(event.request.url).pathname.startsWith('/api/')) return;
+
+  // El panel de administrador nunca se sirve desde la cache.
+  if (new URL(event.request.url).pathname.startsWith('/admin')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

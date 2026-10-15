@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07120f">
+  <meta name="description" content="Inicia sesión en Rodando UTP para acceder a las sugerencias inteligentes de conductores cercanos.">
+  <title>Acceso | Rodando UTP</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-body">
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main class="auth-shell">
+    <section class="auth-intro">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <span>Rodando <strong>UTP</strong></span>
+      </a>
+      <h1>Comparte el camino.<br><span>Dividimos la gasolina.</span></h1>
+      <p>Accede a la comunidad de estudiantes de la Universidad Tecnológica de Puebla y deja que el mapa inteligente te sugiera los conductores más cercanos a tu zona.</p>
+      <ul class="auth-benefits">
+        <li><span>⌖</span> Mapa por zonas con sugerencias de conductores cercanos</li>
+        <li><span>✓</span> Rutas y perfiles verificados de la comunidad UTP</li>
+        <li><span>$</span> Solo la aportación de gasolina, nada más</li>
+      </ul>
+      <p class="auth-note" id="backendNote">Verificando conexión con el servidor…</p>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-tabs" role="tablist" aria-label="Acceso o registro">
+        <button class="auth-tab active" id="tabLogin" role="tab" aria-selected="true" type="button">Iniciar sesión</button>
+        <button class="auth-tab" id="tabRegister" role="tab" aria-selected="false" type="button">Crear cuenta</button>
+      </div>
+
+      <form class="auth-form" id="loginForm" novalidate>
+        <h2>Bienvenido de vuelta</h2>
+        <p class="auth-sub">Usa tu correo universitario registrado.</p>
+
+        <label class="auth-field">
+          <span>Correo electrónico</span>
+          <input type="email" id="loginCorreo" autocomplete="email" placeholder="nombre@rodandoutp.mx" required>
+        </label>
+
+        <label class="auth-field">
+          <span>Contraseña</span>
+          <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" required>
+        </label>
+
+        <button class="btn btn-primary auth-submit" type="submit">Entrar</button>
+        <p class="auth-error" id="loginError" role="alert" hidden></p>
+
+        <div class="demo-box">
+          <strong>Cuentas de demostración</strong>
+          <button type="button" class="demo-chip" data-correo="admin@rodandoutp.mx" data-clave="admin123">
+            <span>Administrador</span><small>admin@rodandoutp.mx</small>
+          </button>
+          <button type="button" class="demo-chip" data-correo="mariana@rodandoutp.mx" data-clave="utp12345">
+            <span>Conductora · Cholula</span><small>mariana@rodandoutp.mx</small>
+          </button>
+          <button type="button" class="demo-chip" data-correo="ana@rodandoutp.mx" data-clave="utp12345">
+            <span>Estudiante · Cholula</span><small>ana@rodandoutp.mx</small>
+          </button>
+          <p class="demo-hint">Contraseña de los usuarios: <code>utp12345</code> · Admin: <code>admin123</code></p>
+        </div>
+      </form>
+
+      <form class="auth-form" id="registerForm" novalidate hidden>
+        <h2>Únete a la comunidad</h2>
+        <p class="auth-sub">Regístrate con tus datos universitarios.</p>
+
+        <label class="auth-field">
+          <span>Nombre completo</span>
+          <input type="text" id="regNombre" autocomplete="name" placeholder="Ana Karen Bautista" required minlength="3">
+        </label>
+
+        <label class="auth-field">
+          <span>Correo electrónico</span>
+          <input type="email" id="regCorreo" autocomplete="email" placeholder="nombre@rodandoutp.mx" required>
+        </label>
+
+        <div class="auth-row">
+          <label class="auth-field">
+            <span>Zona de origen</span>
+            <select id="regZona" required>
+              <option value="">Selecciona tu zona</option>
+              <option>Cholula</option>
+              <option>Angelópolis</option>
+              <option>Amozoc</option>
+              <option>Centro</option>
+              <option>La Margarita</option>
+            </select>
+          </label>
+          <label class="auth-field">
+            <span>Matrícula <small>(opcional)</small></span>
+            <input type="text" id="regMatricula" placeholder="VIFE0000000A0">
+          </label>
+        </div>
+
+        <label class="auth-field">
+          <span>Contraseña</span>
+          <input type="password" id="regPassword" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+        </label>
+
+        <button class="btn btn-primary auth-submit" type="submit">Crear mi cuenta</button>
+        <p class="auth-error" id="registerError" role="alert" hidden></p>
+      </form>
+
+      <a class="auth-back" href="index.html">← Volver a la página principal</a>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/auth.js" defer></script>
+</body>
+</html>

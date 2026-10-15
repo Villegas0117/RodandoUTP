@@ -1,0 +1,115 @@
+/* =============================================================
+   Rodando UTP - Mapa inteligente por zonas (IA simulada)
+   ============================================================= */
+
+.mapa-section { padding-block: 90px 20px; }
+
+.ia-panel { padding: 30px; border-radius: 30px; background: linear-gradient(150deg, rgba(13,34,27,.92), rgba(7,20,16,.95)); border: 1px solid rgba(111,255,175,.13); box-shadow: var(--shadow); }
+.ia-panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
+.ia-panel h2 { font-family: 'Manrope'; font-size: clamp(1.6rem, 3vw, 2.3rem); letter-spacing: -.035em; margin: 10px 0 6px; }
+.ia-panel-head p { color: var(--muted); margin: 0; max-width: 560px; font-size: .92rem; }
+
+.ia-badge { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 999px; font-size: .76rem; font-weight: 700; color: #ffe3a8; background: rgba(255,200,90,.08); border: 1px solid rgba(255,200,90,.2); white-space: nowrap; }
+.ia-badge::before { content: '●'; color: #ffc95a; }
+
+.ia-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.ia-controls label { display: grid; gap: 7px; color: #c3d9cc; font-size: .82rem; font-weight: 600; padding: 11px 14px; border-radius: 14px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); }
+
+.ia-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-bottom: 20px; }
+.ia-summary div { padding: 15px; border-radius: 15px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.06); }
+.ia-summary strong { display: block; font-family: 'Manrope'; font-size: 1.35rem; color: var(--green); letter-spacing: -.02em; }
+.ia-summary span { color: var(--muted); font-size: .72rem; }
+
+.ia-map-layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; align-items: start; }
+
+.ia-map-wrap { position: relative; padding: 18px; border-radius: 22px; background: radial-gradient(circle at 50% 45%, rgba(69,229,141,.07), transparent 62%), rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07); overflow: hidden; }
+.ia-map { width: 100%; height: auto; display: block; }
+
+.ia-map .edge { stroke-width: 2.4; }
+.ia-map .edge-fast { stroke: rgba(69,229,141,.42); stroke-dasharray: 6 5; }
+.ia-map .edge-slow { stroke: rgba(150,180,168,.17); stroke-dasharray: 3 6; }
+
+.ia-map .zone { cursor: pointer; outline: none; }
+.ia-map .zone-halo { fill: rgba(69,229,141,.05); stroke: rgba(69,229,141,.18); stroke-width: 1.5; transition: .2s ease; }
+.ia-map .zone-dot { fill: #14563a; stroke: rgba(69,229,141,.4); stroke-width: 2; transition: .2s ease; }
+.ia-map .zone-label { fill: #dfffe9; font-size: 21px; font-weight: 700; font-family: 'Manrope', sans-serif; pointer-events: none; }
+.ia-map .zone-count { fill: #8fb8a4; font-size: 15px; pointer-events: none; }
+
+.ia-map .zone:hover .zone-halo,
+.ia-map .zone:focus-visible .zone-halo { fill: rgba(69,229,141,.15); stroke: rgba(69,229,141,.6); }
+.ia-map .zone-vacia .zone-dot { fill: #123326; stroke: rgba(150,180,168,.25); }
+.ia-map .zone-utp .zone-dot { fill: #1c7a4f; stroke: var(--lime); stroke-width: 3; }
+.ia-map .zone-origen .zone-halo { fill: rgba(180,255,102,.16); stroke: var(--lime); stroke-width: 2.5; }
+.ia-map .zone-origen .zone-dot { fill: #2b8f5c; stroke: var(--lime); stroke-width: 3; }
+
+.ia-map-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 4px 0; color: var(--muted); font-size: .75rem; }
+.ia-map-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.ia-map-legend i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.ia-legend-origen { background: #2b8f5c; border: 2px solid var(--lime); }
+.ia-legend-utp { background: #1c7a4f; border: 2px solid var(--lime); }
+.ia-legend-normal { background: #14563a; border: 1.5px solid rgba(69,229,141,.4); }
+.ia-legend-vacia { background: #123326; border: 1.5px solid rgba(150,180,168,.3); }
+
+/* --------------------------------------------------- sugerencias */
+
+.sugerencias-box { display: grid; gap: 13px; }
+.ia-loading { color: var(--muted); text-align: center; padding: 34px; }
+
+.sugerencia { padding: 18px; border-radius: 19px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); transition: .2s ease; }
+.sugerencia:hover { border-color: rgba(86,244,154,.22); transform: translateY(-3px); }
+.sugerencia-top { border-color: rgba(180,255,102,.3); background: linear-gradient(150deg, rgba(180,255,102,.07), rgba(255,255,255,.03)); }
+
+.sug-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.sug-head .driver strong { font-size: .95rem; }
+.sug-head .driver small { color: var(--muted); font-size: .72rem; }
+.confianza { text-align: right; }
+.confianza strong { display: block; font-family: 'Manrope'; font-size: 1.25rem; color: var(--green); letter-spacing: -.02em; }
+.confianza small { color: var(--muted); font-size: .66rem; }
+
+.sug-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 13px; }
+.sug-metrics div { padding: 8px 9px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.sug-metrics small { display: block; color: var(--muted); font-size: .63rem; }
+.sug-metrics strong { font-size: .8rem; }
+
+.score-bar { position: relative; height: 22px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; margin-bottom: 13px; }
+.score-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--green-2), var(--green), var(--lime)); transition: width .4s ease; }
+.score-bar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: .7rem; font-weight: 800; color: #04170d; text-shadow: 0 1px 2px rgba(255,255,255,.25); }
+
+.razones { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 5px; }
+.razones li { position: relative; padding-left: 19px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.razones li::before { content: '▸'; position: absolute; left: 4px; color: var(--green); }
+
+.sug-foot { display: flex; align-items: center; justify-content: space-between; gap: 11px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips .comp { padding: 3px 8px; border-radius: 7px; font-size: .68rem; font-weight: 700; color: var(--green-soft); background: rgba(69,229,141,.08); border: 1px solid rgba(69,229,141,.14); }
+.chips .comp em { color: var(--muted); font-style: normal; font-weight: 500; margin-right: 4px; }
+
+.ia-note { margin: 18px 0 0; padding: 13px 15px; border-radius: 14px; color: #ffe3a8; background: rgba(255,200,90,.06); border: 1px solid rgba(255,200,90,.16); font-size: .8rem; }
+.ia-note strong { color: #ffd77a; }
+
+/* ----------------------------------------------------- sesion nav */
+
+.session-box { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+.session-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #174f37, #297653); font-size: .74rem; font-weight: 800; color: #dffff0; }
+.session-info { display: grid; line-height: 1.25; }
+.session-name { font-size: .82rem; font-weight: 700; }
+.session-role { font-size: .68rem; color: var(--muted); }
+
+/* ------------------------------------------------- aviso sin sesion */
+
+.guest-box { padding: 15px 18px; border-radius: 16px; background: rgba(255,200,90,.06); border: 1px solid rgba(255,200,90,.16); }
+.guest-box p { margin: 0; color: #ffe3a8; font-size: .85rem; }
+.guest-box a { color: var(--lime); font-weight: 700; text-decoration: underline; }
+
+@media (max-width: 980px) {
+  .ia-map-layout { grid-template-columns: 1fr; }
+  .ia-summary { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 720px) {
+  .ia-panel { padding: 19px; border-radius: 22px; }
+  .ia-controls { grid-template-columns: 1fr; }
+  .sug-metrics { grid-template-columns: repeat(2, 1fr); }
+  .session-box { padding: 5px; }
+  .session-info { display: none; }
+}
