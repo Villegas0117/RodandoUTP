@@ -81,8 +81,17 @@ class Manejador(BaseHTTPRequestHandler):
         self.end_headers()
 
     def enviar_json(self, datos, estado=200, cabeceras=None):
+        """
+        Envía una respuesta JSON.
+        La API nunca se cachea: son datos de sesión y mutables (rutas, reservas,
+        usuarios). Sin 'no-store' el navegador podria aplicar heuristicas de
+        frescura y servir datos obsoletos, que es justo lo que rompe el login
+        y el panel de administracion.
+        """
         cuerpo = json.dumps(datos, ensure_ascii=False).encode('utf-8')
         self.send_response(estado)
+        cabeceras = dict(cabeceras or {})
+        cabeceras.setdefault('Cache-Control', 'no-store')
         self._cabeceras('application/json; charset=utf-8', len(cuerpo), cabeceras)
         self.wfile.write(cuerpo)
 

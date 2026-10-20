@@ -44,6 +44,15 @@ def pedir_bruto(ruta):
         return e.code
 
 
+def cabeceras(ruta):
+    """Devuelve el diccionario de cabeceras de una respuesta."""
+    try:
+        with urllib.request.urlopen(BASE + ruta) as r:
+            return dict(r.headers)
+    except urllib.error.HTTPError as e:
+        return dict(e.headers)
+
+
 def chequear(nombre, condicion, detalle=''):
     resultados.append((nombre, bool(condicion), detalle))
     print(f'  {OK if condicion else FALLO}  {nombre}' + (f'  → {detalle}' if detalle else ''))
@@ -73,6 +82,20 @@ def main():
         codigo = pedir_bruto(ruta)
         chequear(f'{ruta} NO es público', codigo in (403, 404), f'HTTP {codigo}')
     chequear('admin.html exige sesión', pedir_bruto('/admin.html') == 401)
+
+    print('\n-- Estrategia de caché --')
+    cab_api = cabeceras('/api/rutas')
+    chequear('La API se marca como no-cacheable',
+             'no-store' in cab_api.get('Cache-Control', ''),
+             cab_api.get('Cache-Control', '(sin cabecera)'))
+    cab_sesion = cabeceras('/api/sesion')
+    chequear('La sesión tampoco se cachea',
+             'no-store' in cab_sesion.get('Cache-Control', ''),
+             cab_sesion.get('Cache-Control', '(sin cabecera)'))
+    cab_html = cabeceras('/index.html')
+    chequear('Los archivos estáticos se revalidan siempre',
+             'no-cache' in cab_html.get('Cache-Control', ''),
+             cab_html.get('Cache-Control', '(sin cabecera)'))
 
     print('\n-- Autenticación --')
     s, d, _ = pedir('/api/login', 'POST', {'correo': 'admin@rodandoutp.mx', 'password': 'incorrecta'})

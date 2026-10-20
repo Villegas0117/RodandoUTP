@@ -135,6 +135,27 @@ Funcionamiento en `ia_simulada.py`:
 La sección completa y las sugerencias solo son visibles **después de iniciar
 sesión**, tanto en la interfaz como en la API.
 
+## Estrategia de caché
+
+La aplicación separa deliberadamente lo que se puede cachear de lo que no:
+
+| Recurso | Comportamiento | Motivo |
+|---|---|---|
+| `index.html`, `css/`, `js/`, `img/` | Service Worker **cache-first** + revalidación en segundo plano | Permite usar la app sin conexión. |
+| Archivos estáticos servidos por HTTP | `Cache-Control: no-cache` | Se guardan, pero siempre se revalidan contra el servidor. |
+| **`/api/*` (toda la API)** | **`Cache-Control: no-store`** | Son datos de sesión y mutables. Cachearlos rompería el login y el panel. |
+| `/admin*` | Nunca entra a la caché del Service Worker | El panel exige sesión de administrador. |
+
+El Service Worker ignora por completo las rutas que empiezan con `/api/` o
+`/admin`, así que esas peticiones siempre llegan al servidor. En la API,
+`no-store` evita que el navegador aplique heurísticas de frescura y sirva datos
+obsoletos.
+
+> **Al desarrollar:** el Service Worker sirve primero desde la caché. Si tocas un
+> `.js` o un `.css` y no ves el cambio, ve a DevTools → Application → Service
+> Workers y pulsa *Unregister*, o sube `CACHE_NAME` en `service-worker.js`.
+> La caché de la API no interfiere con esto.
+
 ## Pruebas
 
 Con el servidor corriendo en otra terminal:
