@@ -169,6 +169,13 @@
                 <span><i class="ia-legend-normal"></i> Con rutas</span>
                 <span><i class="ia-legend-vacia"></i> Sin rutas</span>
                 <span><i class="ia-legend-edge"></i> Conexión entre zonas</span>
+                <label class="ia-map-provider">
+                  <span>Fondo del mapa</span>
+                  <select id="mapaProveedor" aria-label="Proveedor de mosaicos del mapa">
+                    <option value="osm">OpenStreetMap</option>
+                    <option value="carto">CartoDB (respaldo)</option>
+                  </select>
+                </label>
               </div>
               <p class="ia-map-credit">Mosaicos © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Datos de mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OSM</a></p>
               <p class="ia-map-offline" id="mapaOffline" hidden>

@@ -28,6 +28,8 @@
 /* Mosaicos de OSM en tema oscuro: se invierte la imagen y se corrige el
    tinte para que las calles y las zonas sigan siendo legibles. */
 .ia-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) saturate(.55) contrast(.92); }
+/* El fondo de CartoDB ya es oscuro: no se invierte. */
+.ia-map.mapa-fondo-natural .leaflet-tile-pane { filter: none; }
 .ia-map .leaflet-control-zoom a { background: #0c1d17; color: var(--green-soft); border-color: rgba(255,255,255,.12); }
 .ia-map .leaflet-control-zoom a:hover { background: #133026; color: white; }
 .ia-map .leaflet-control-attribution { background: rgba(6,17,14,.82); color: #8fb8a4; font-size: .64rem; }
@@ -57,6 +59,12 @@
 .ia-map-credit { margin: 10px 0 0; font-size: .68rem; color: #6f8a7d; }
 .ia-map-credit a { color: #8fb8a4; text-decoration: underline; }
 .ia-map-offline { margin: 10px 0 0; padding: 10px 13px; border-radius: 12px; background: rgba(255,168,89,.08); border: 1px solid rgba(255,168,89,.2); color: #ffd0a3; font-size: .78rem; }
+.ia-map-offline.es-aviso { background: rgba(255,200,90,.07); border-color: rgba(255,200,90,.22); color: #ffe3a8; }
+
+.ia-map-provider { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.ia-map-provider > span { color: var(--muted); font-size: .72rem; }
+.ia-map-provider select { padding: 5px 9px; border-radius: 9px; font-size: .74rem; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: var(--text); }
+.ia-map-provider select option { background: #10251e; color: var(--text); }
 
 /* --------------------------------------------------- sugerencias */
 

@@ -114,6 +114,25 @@ def main():
              'no-cache' in cab_html.get('Cache-Control', ''),
              cab_html.get('Cache-Control', '(sin cabecera)'))
 
+    print('\n-- Proveedor de mosaicos del mapa --')
+    _, cuerpo_index, _ = pedir_com_cabeceras('/index.html')
+    texto_index = cuerpo_index.decode('utf-8', 'ignore')
+    chequear('La pagina ofrece elegir el fondo del mapa',
+             'id="mapaProveedor"' in texto_index)
+    chequear('Se ofrecen OpenStreetMap y el respaldo',
+             'value="osm"' in texto_index and 'value="carto"' in texto_index)
+
+    _, cuerpo_mapa, _ = pedir_com_cabeceras('/js/mapa-ia.js')
+    texto_mapa = cuerpo_mapa.decode('utf-8', 'ignore')
+    chequear('El mapa usa mosaicos de OpenStreetMap',
+             'tile.openstreetmap.org' in texto_mapa)
+    chequear('El mapa tiene proveedor de respaldo',
+             'basemaps.cartocdn.com' in texto_mapa)
+    chequear('El bloqueo de mosaicos dispara el cambio automatico',
+             'cambiarProveedorAutomatico' in texto_mapa and 'tileerror' in texto_mapa)
+    chequear('El aviso de mosaicos existe en la pagina',
+             'id="mapaOffline"' in texto_index)
+
     print('\n-- Dependencias de scripts por pagina --')
     # Cada pagina que llama a api() / obtenerSesion() / cerrarSesion() necesita
     # cargar js/sesion.js, que es donde se definen. Si falta, el navegador

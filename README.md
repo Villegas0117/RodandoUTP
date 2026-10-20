@@ -216,9 +216,28 @@ cTarjeta, a diferencia de los mapas proprietary.
 |---|---|
 | Leaflet está **incluido en el repo** (`vendor/leaflet/`) | El proyecto no depende de un CDN: se carga igual sin internet y el Service Worker lo guarda en caché. |
 | Mosaicos de `tile.openstreetmap.org` | Se piden siempre a la red, nunca se cachean en masa: cachearlos incumpliría la política de uso de OSM. |
+| **Proveedor de respaldo (CartoDB dark)** | OSM bloquea temporalmente las peticiones cuando se activa su política de uso. El mapa cambia solo al respaldo y avisa, sin que se caiga la demo. |
+| Selector manual de fondo | Junto a la leyenda: "OpenStreetMap" o "CartoDB (respaldo)". |
 | Atribución visible | En el pie del mapa: *Mosaicos © OpenStreetMap · Datos de mapa © colaboradores de OSM*, como exige la licencia. |
-| Tema oscuro | Un filtro CSS invierte los mosaicos para que encajen con el resto de la interfaz. |
+| Tema oscuro | Un filtro CSS invierte los mosaicos de OSM para que encajen con el resto de la interfaz. CartoDB dark ya es oscuro, así que no se invierte. |
 | Sin conexión | Si los mosaicos no cargan, se avisa con un mensaje y las zonas, las aristas y las sugerencias siguen funcionando sobre el modelo interno. |
+
+### El bloqueo de OpenStreetMap
+
+Los servidores de mosaicos de OSM son volunteer-run y aplican su
+[política de uso](https://operations.osmfoundation.org/policies/tiles/): si un
+cliente hace demasiadas peticiones o no se identifica correctamente, responde
+`403` con un mosaico de "Access blocked" durante un tiempo.
+
+Por eso la aplicación **no depende de un único proveedor**:
+
+1. Los mosaicos de OSM son el fondo principal.
+2. Si se detectan varios `tileerror` (bloqueo o caída), se cambia
+   automáticamente al fondo de CartoDB y se muestra un aviso explicando qué pasó.
+3. El selector junto a la leyenda permite forzarlo a mano en cualquier momento.
+
+Ambos proveedores usan **datos de OpenStreetMap** y son gratuitos, sin clave
+de API.
 
 ### Las zonas sobre el territorio real
 

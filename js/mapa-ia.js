@@ -19,7 +19,6 @@ const zonaSelect = document.querySelector('#iaZona');
 const turnoSelect = document.querySelector('#iaTurno');
 const iaResumen = document.querySelector('#iaResumen');
 const iaAviso = document.querySelector('#iaAviso');
-const avisoSinMosaicos = document.querySelector('#mapaOffline');
 
 let datosMapa = { zonas: [], conexiones: [], sugerencias: [] };
 let usuarioActual = null;
@@ -40,6 +39,27 @@ const iniciales = (nombre) => String(nombre).split(' ').map(p => p[0])
 
 /* ------------------------------------------------------------- Leaflet */
 
+// Proveedores de mosaicos. OSM es el principal (codigo abierto, sin clave);
+// CartoDB es el respaldo automatico si OSM bloquea la peticion.
+const PROVEEDORES = {
+  osm: {
+    nombre: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdominios: '',
+    atribucion: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  carto: {
+    nombre: 'CartoDB (respaldo)',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    subdominios: 'abcd',
+    atribucion: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+};
+
+let proveedorActual = 'osm';
+let capaMosaicos = null;
+let bloqueosDetectados = 0;
+
 /**
  * Crea el mapa de Leaflet con los mosaicos de OpenStreetMap.
  * OpenStreetMap es la alternativa libre y abierta: no necesita clave
@@ -57,25 +77,78 @@ function crearMapa() {
     tap: true,
   });
 
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(mapaLeaflet);
+  aplicarProveedor('osm');
 
   // El zoom con la rueda se activa solo al hacer clic en el mapa.
   mapaLeaflet.on('click', () => mapaLeaflet.scrollWheelZoom.enable());
   mapaLeaflet.on('mouseout', () => mapaLeaflet.scrollWheelZoom.disable());
 
-  // Si los mosaicos no se pueden cargar (sin internet) se avisa, pero
-  // las zonas y las sugerencias siguen funcionando.
-  mapaLeaflet.on('tileerror', () => {
-    if (avisoSinMosaicos) avisoSinMosaicos.hidden = false;
-  });
-
   capaConexiones = L.layerGroup().addTo(mapaLeaflet);
   capaZonas = L.layerGroup().addTo(mapaLeaflet);
 
   return mapaLeaflet;
+}
+
+/** Cambia la capa de mosaicos al proveedor indicado. */
+function aplicarProveedor(clave) {
+  if (!mapaLeaflet) return;
+  const proveedor = PROVEEDORES[clave];
+  if (!proveedor) return;
+
+  if (capaMosaicos) mapaLeaflet.removeLayer(capaMosaicos);
+
+  capaMosaicos = L.tileLayer(proveedor.url, {
+    maxZoom: 19,
+    subdomains: proveedor.subdominios || 'abc',
+    attribution: proveedor.atribucion,
+  });
+
+  // OSM responde 403 con un mosaico de "Access blocked" cuando su politica
+  // de uso se activa. Se detectan esos errores y se cambia al respaldo.
+  capaMosaicos.on('tileerror', (evento) => {
+    const codigo = evento.error && evento.error.status;
+    bloqueosDetectados += 1;
+    if (proveedorActual === 'osm' && bloqueosDetectados >= 3) {
+      cambiarProveedorAutomatico();
+    } else if (codigo === 403) {
+      avisarMosaicos('El servidor de mapas rechazó la petición (HTTP 403).');
+    }
+  });
+
+  capaMosaicos.addTo(mapaLeaflet);
+  proveedorActual = clave;
+
+  // El filtro de tema oscuro solo se aplica a los mosaicos claros de OSM.
+  // CartoDB dark ya viene en oscuro: invertirlo lo dejaria ilegible.
+  if (mapaBox) mapaBox.classList.toggle('mapa-fondo-natural', clave === 'carto');
+
+  actualizarSelectorProveedor();
+}
+
+/** Cambia al proveedor de respaldo y lo avisa. */
+function cambiarProveedorAutomatico() {
+  if (proveedorActual === 'carto') return;
+  aplicarProveedor('carto');
+  avisarMosaicos(
+    'OpenStreetMap bloqueó temporalmente las peticiones (política de uso). ' +
+    'Se cambió al fondo alternativo automáticamente; el mapa sigue funcionando.',
+    true
+  );
+}
+
+/** Muestra el aviso sobre el estado de los mosaicos. */
+function avisarMosaicos(mensaje, esAviso = false) {
+  const caja = document.querySelector('#mapaOffline');
+  if (!caja) return;
+  caja.textContent = mensaje;
+  caja.hidden = false;
+  caja.classList.toggle('es-aviso', esAviso);
+}
+
+/** Refleja el proveedor activo en el selector de la interfaz. */
+function actualizarSelectorProveedor() {
+  const selector = document.querySelector('#mapaProveedor');
+  if (selector) selector.value = proveedorActual;
 }
 
 /** Dibuja las aristas del grafo de zonas sobre el mapa. */
@@ -322,6 +395,17 @@ async function iniciarMapa() {
 
   zonaSelect?.addEventListener('change', pedirSugerencias);
   turnoSelect?.addEventListener('change', pedirSugerencias);
+
+  // Selector manual del fondo del mapa, por si el servidor principal falla.
+  document.querySelector('#mapaProveedor')?.addEventListener('change', (evento) => {
+    aplicarProveedor(evento.target.value);
+    avisarMosaicos(
+      evento.target.value === 'carto'
+        ? 'Fondo alternativo activo (CartoDB). Los datos siguen siendo de OpenStreetMap.'
+        : 'Fondo OpenStreetMap activo.',
+      true
+    );
+  });
 
   // Leaflet se carga con 'defer': puede no estar listo todavia.
   if (typeof L !== 'undefined') {
