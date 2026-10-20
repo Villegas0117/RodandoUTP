@@ -114,6 +114,24 @@ def main():
              'no-cache' in cab_html.get('Cache-Control', ''),
              cab_html.get('Cache-Control', '(sin cabecera)'))
 
+    print('\n-- Recursos del mapa --')
+    for ruta in ('/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css',
+                 '/vendor/leaflet/images/marker-icon.png',
+                 '/vendor/leaflet/images/marker-shadow.png'):
+        chequear(f'Se sirve {ruta}', pedir_bruto(ruta) == 200)
+
+    # La hoja de estilos debe permitir que [hidden] oculte los elementos:
+    # si no, el boton de instalar y el enlace de acceso quedan visibles.
+    _, _, cab_index = pedir_com_cabeceras('/index.html')
+    _, cuerpo_index, _ = pedir_com_cabeceras('/index.html')
+    _, cuerpo_estilos, _ = pedir_com_cabeceras('/css/styles.css')
+    chequear('index.html enlaza la hoja de Leaflet',
+             b'vendor/leaflet/leaflet.css' in cuerpo_index)
+    chequear('index.html carga el script de Leaflet',
+             b'vendor/leaflet/leaflet.js' in cuerpo_index)
+    chequear('El estilo global respeta el atributo [hidden]',
+             b'[hidden]' in cuerpo_estilos and b'display: none' in cuerpo_estilos)
+
     print('\n-- Autenticación --')
     s, d, _ = pedir('/api/login', 'POST', {'correo': 'admin@rodandoutp.mx', 'password': 'incorrecta'})
     chequear('Login con contraseña errónea devuelve 401', s == 401, d.get('error', ''))
@@ -249,6 +267,10 @@ def main():
     chequear('/api/zonas entrega las conexiones entre zonas',
              isinstance(d.get('conexiones'), list) and len(d['conexiones']) > 0,
              f"{len(d.get('conexiones', []))} conexiones")
+    chequear('Las coordenadas geográficas están en el rango de Puebla',
+             all(-99.0 < z['lng'] < -98.0 and 18.0 < z['lat'] < 20.0 for z in d['zonas']),
+             f"lat {min(z['lat'] for z in d['zonas'])}..{max(z['lat'] for z in d['zonas'])}, "
+             f"lng {min(z['lng'] for z in d['zonas'])}..{max(z['lng'] for z in d['zonas'])}")
 
     s, d, _ = pedir('/api/sesion', cookie=token_est)
     chequear('/api/sesion entrega "usuario" y "autenticado"',
@@ -278,6 +300,11 @@ def main():
     s, d, _ = pedir('/api/ia/mapa?zona=Cholula', cookie=token_est)
     chequear('El mapa trae 6 zonas', s == 200 and len(d['zonas']) == 6)
     chequear('El mapa dibuja conexiones entre zonas', len(d['conexiones']) == 9)
+    chequear('Cada zona del mapa trae coordenadas geográficas',
+             all('lat' in z and 'lng' in z for z in d['zonas']))
+    chequear('Las conexiones traen minutos y distancia real',
+             all('minutos' in c and 'km' in c for c in d['conexiones']),
+             f"ej: {d['conexiones'][0]}")
     ch = next((z for z in d['zonas'] if z['nombre'] == 'Cholula'), None)
     chequear('Las coordenadas del mapa son válidas', ch and 0 < ch['mapa_x'] < 980 and 0 < ch['mapa_y'] < 720,
               f"({ch['mapa_x']}, {ch['mapa_y']})" if ch else 'no encontrada')

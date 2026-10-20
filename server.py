@@ -553,10 +553,7 @@ class Manejador(BaseHTTPRequestHandler):
                 }
                 for f in filas
             ],
-            'conexiones': [
-                {'de': a, 'a': b, 'minutos': m}
-                for (a, b), m in ia_simulada.TIEMPOS.items()
-            ],
+            'conexiones': ia_simulada.conexiones_detalladas(),
         })
 
     def api_rutas(self, consulta, _):
@@ -678,6 +675,8 @@ class Manejador(BaseHTTPRequestHandler):
             sugeridas = ia_simulada.sugerir(f['nombre'], turno, 3)
             zonas.append({
                 'nombre': f['nombre'],
+                'lat': f['lat'],
+                'lng': f['lng'],
                 'mapa_x': f['mapa_x'],
                 'mapa_y': f['mapa_y'],
                 'estadisticas': ia_simulada.resumen_zona(f['nombre']),
@@ -690,10 +689,7 @@ class Manejador(BaseHTTPRequestHandler):
             'origen': zona,
             'turno': turno,
             'zonas': zonas,
-            'conexiones': [
-                {'de': a, 'a': b, 'minutos': m}
-                for (a, b), m in ia_simulada.TIEMPOS.items()
-            ],
+            'conexiones': ia_simulada.conexiones_detalladas(),
             # Sin zona indicada se usa la UTP como origen por defecto, para que
             # el mapa nunca llegue vacio a la interfaz.
             'sugerencias': ia_simulada.sugerir(zona or 'UTP', turno, 5),
@@ -903,6 +899,10 @@ def main():
     creado = database.sembrar()
     if creado:
         print('  Base de datos creada y sembrada en data/rodando.db')
+    else:
+        # Se mantienen al día las coordenadas de las zonas aunque la base
+        # ya exista de una ejecución anterior.
+        database.refrescar_zonas()
 
     servidor = ThreadingHTTPServer((args.host, args.puerto), Manejador)
     print(f'\n  Rodando UTP corriendo en http://{args.host}:{args.puerto}')

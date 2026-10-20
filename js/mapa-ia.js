@@ -5,6 +5,10 @@
    API de inteligencia artificial. Las sugerencias llegan calculadas
    por el motor determinista de ia_simulada.py, que pondera cercania,
    horario, reputacion y disponibilidad sobre un grafo de zonas.
+
+   El mapa usa Leaflet con mosaicos de OpenStreetMap (codigo abierto,
+   sin clave de API). Las zonas se colocan con sus coordenadas WGS84
+   reales y las aristas del grafo se dibujan sobre el territorio.
    ============================================================= */
 
 const mapaBox = document.querySelector('#mapaBox');
@@ -15,10 +19,15 @@ const zonaSelect = document.querySelector('#iaZona');
 const turnoSelect = document.querySelector('#iaTurno');
 const iaResumen = document.querySelector('#iaResumen');
 const iaAviso = document.querySelector('#iaAviso');
+const avisoSinMosaicos = document.querySelector('#mapaOffline');
 
 let datosMapa = { zonas: [], conexiones: [], sugerencias: [] };
 let usuarioActual = null;
 let zonasCargadas = false;
+let mapaLeaflet = null;
+let capaZonas = null;
+let capaConexiones = null;
+const marcadores = new Map();
 
 /* ----------------------------------------------------------- utilerias */
 
@@ -26,56 +35,153 @@ const escapar = (valor) => String(valor ?? '')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
-/* ------------------------------------------------------------- pintado */
+const iniciales = (nombre) => String(nombre).split(' ').map(p => p[0])
+  .join('').slice(0, 2).toUpperCase();
 
-function pintarMapa() {
-  if (!mapaZonas) return;
-  // ViewBox ajustado al area ocupada por las zonas: hace que el mapa y sus
-  // etiquetas se vean legibles tambien en pantallas pequenas.
-  const viewBox = '150 20 690 680';
+/* ------------------------------------------------------------- Leaflet */
 
-  mapaZonas.innerHTML = datosMapa.zonas.map((zona) => {
-    const x = zona.mapa_x;
-    const y = zona.mapa_y;
-    const esOrigen = zona.destacado;
-    const esUtp = zona.nombre === 'UTP';
-    const clases = ['zone', esOrigen && 'zone-origen', esUtp && 'zone-utp',
-      zona.estadisticas.rutas ? 'zone-activa' : 'zone-vacia'].filter(Boolean).join(' ');
-    const radio = esUtp ? 30 : esOrigen ? 28 : 24;
+/**
+ * Crea el mapa de Leaflet con los mosaicos de OpenStreetMap.
+ * OpenStreetMap es la alternativa libre y abierta: no necesita clave
+ * de API ni cuenta, a diferencia de los mapas proprietary.
+ */
+function crearMapa() {
+  if (mapaLeaflet || !mapaBox || typeof L === 'undefined') return mapaLeaflet;
 
-    return `
-      <g class="${clases}" data-zona="${escapar(zona.nombre)}" transform="translate(${x},${y})" tabindex="0" role="button"
-         aria-label="Zona ${escapar(zona.nombre)}: ${zona.estadisticas.rutas} rutas disponibles">
-        <circle class="zone-halo" r="${esOrigen ? 64 : 48}"></circle>
-        <circle class="zone-dot" r="${radio}"></circle>
-        <text class="zone-label" y="7" text-anchor="middle">${escapar(zona.nombre)}</text>
-        <text class="zone-count" y="${radio + 26}" text-anchor="middle">${zona.estadisticas.rutas || 0} rutas</text>
-      </g>`;
-  }).join('');
+  mapaLeaflet = L.map(mapaBox, {
+    center: [19.0450, -98.2900],
+    zoom: 12,
+    zoomControl: true,
+    attributionControl: true,
+    scrollWheelZoom: false,   // evita que el scroll de la pagina mueva el mapa
+    tap: true,
+  });
 
-  mapaConexiones.innerHTML = datosMapa.conexiones.map((c) => {
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(mapaLeaflet);
+
+  // El zoom con la rueda se activa solo al hacer clic en el mapa.
+  mapaLeaflet.on('click', () => mapaLeaflet.scrollWheelZoom.enable());
+  mapaLeaflet.on('mouseout', () => mapaLeaflet.scrollWheelZoom.disable());
+
+  // Si los mosaicos no se pueden cargar (sin internet) se avisa, pero
+  // las zonas y las sugerencias siguen funcionando.
+  mapaLeaflet.on('tileerror', () => {
+    if (avisoSinMosaicos) avisoSinMosaicos.hidden = false;
+  });
+
+  capaConexiones = L.layerGroup().addTo(mapaLeaflet);
+  capaZonas = L.layerGroup().addTo(mapaLeaflet);
+
+  return mapaLeaflet;
+}
+
+/** Dibuja las aristas del grafo de zonas sobre el mapa. */
+function pintarConexiones() {
+  if (!mapaLeaflet) return;
+  capaConexiones.clearLayers();
+
+  datosMapa.conexiones.forEach((c) => {
     const a = datosMapa.zonas.find(z => z.nombre === c.de);
     const b = datosMapa.zonas.find(z => z.nombre === c.a);
-    if (!a || !b) return '';
-    const activa = c.minutos <= 15 ? 'edge-fast' : 'edge-slow';
-    return `<line class="edge ${activa}" x1="${a.mapa_x}" y1="${a.mapa_y}" x2="${b.mapa_x}" y2="${b.mapa_y}">
-              <title>${escapar(c.de)} ↔ ${escapar(c.a)} · ${c.minutos} min</title>
-            </line>`;
-  }).join('');
+    if (!a || !b) return;
 
-  mapaBox?.setAttribute('viewBox', viewBox);
+    const rapida = c.minutos <= 15;
+    const linea = L.polyline(
+      [[a.lat, a.lng], [b.lat, b.lng]],
+      {
+        color: rapida ? '#45e58d' : '#9dc4b4',
+        weight: rapida ? 3.5 : 2.5,
+        opacity: rapida ? 0.95 : 0.6,
+        dashArray: rapida ? '8 6' : '4 8',
+        lineCap: 'round',
+      }
+    ).addTo(capaConexiones);
 
-  mapaZonas.querySelectorAll('.zone').forEach((nodo) => {
-    const activar = () => {
-      const nombre = nodo.dataset.zona;
-      zonaSelect.value = nombre;
-      pedirSugerencias();
-    };
-    nodo.addEventListener('click', activar);
-    nodo.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Enter' || evento.key === ' ') { evento.preventDefault(); activar(); }
-    });
+    const km = c.km != null ? ` · ${c.km} km` : '';
+    linea.bindTooltip(
+      `<strong>${escapar(c.de)} ↔ ${escapar(c.a)}</strong><br>${c.minutos} min estimados${km}`,
+      { sticky: true, direction: 'top' }
+    );
   });
+}
+
+/** Coloca los marcadores de cada zona. */
+function pintarZonas() {
+  if (!mapaLeaflet) return;
+  capaZonas.clearLayers();
+  marcadores.clear();
+
+  datosMapa.zonas.forEach((zona) => {
+    const esOrigen = zona.destacado;
+    const esUtp = zona.nombre === 'UTP';
+    const conRutas = (zona.estadisticas?.rutas || 0) > 0;
+
+    let color = '#2f6b52';
+    let peso = 2;
+    if (esUtp) { color = '#b4ff66'; peso = 4; }
+    else if (esOrigen) { color = '#45e58d'; peso = 4; }
+    else if (!conRutas) { color = '#3a4f46'; peso = 1.5; }
+
+    const circulo = L.circleMarker([zona.lat, zona.lng], {
+      radius: esUtp || esOrigen ? 15 : 11,
+      color: color,
+      weight: peso,
+      opacity: 0.95,
+      fillColor: color,
+      fillOpacity: esUtp || esOrigen ? 0.32 : 0.18,
+      className: esOrigen ? 'zona-origen' : (esUtp ? 'zona-utp' : ''),
+    }).addTo(capaZonas);
+
+    const e = zona.estadisticas || {};
+    const titulo = esUtp ? 'Universidad Tecnológica de Puebla'
+      : (esOrigen ? `Zona ${zona.nombre} (tu zona)` : zona.nombre);
+    const mejor = zona.mejores?.[0];
+    const conductores = e.conductores || 0;
+
+    circulo.bindPopup(`
+      <div class="zona-popup">
+        <strong>${escapar(titulo)}</strong>
+        <div class="popup-stats">
+          <span><b>${e.rutas || 0}</b> ${e.rutas === 1 ? 'ruta' : 'rutas'}</span>
+          <span><b>${e.lugares || 0}</b> lugares</span>
+          <span><b>$${e.promedio || 0}</b> prom.</span>
+        </div>
+        ${mejor ? `<div class="popup-best">★ Mejor opción: ${escapar(mejor.conductor)} (${mejor.confianza}%)</div>` : ''}
+        <div class="popup-hint">${conductores} ${conductores === 1 ? 'conductor' : 'conductores'} en esta zona</div>
+      </div>`);
+
+    circulo.bindTooltip(`${escapar(zona.nombre)} · ${e.rutas || 0} rutas`, {
+      direction: 'top', offset: [0, -6],
+    });
+
+    circulo.on('click', () => {
+      zonaSelect.value = zona.nombre;
+      pedirSugerencias();
+    });
+
+    marcadores.set(zona.nombre, circulo);
+  });
+}
+
+/* ------------------------------------------------------------ pintado */
+
+function pintarMapa() {
+  if (!mapaLeaflet) crearMapa();
+  if (!mapaLeaflet) return;
+
+  pintarConexiones();
+  pintarZonas();
+
+  // Ajusta el encuadre a las zonas con rutas, dejando la UTP a la vista.
+  const conActividad = datosMapa.zonas.filter(z => (z.estadisticas?.rutas || 0) > 0);
+  if (conActividad.length) {
+    const limites = L.latLngBounds(conActividad.map(z => [z.lat, z.lng]));
+    limites.extend([19.0490, -98.3420]);
+    mapaLeaflet.fitBounds(limites.pad(0.18), { animate: false });
+  }
 }
 
 function pintarSugerencias(lista, zona) {
@@ -96,7 +202,7 @@ function pintarSugerencias(lista, zona) {
       <article class="sugerencia${indice === 0 ? ' sugerencia-top' : ''}">
         <div class="sug-head">
           <div class="driver">
-            <span class="avatar">${escapar(s.conductor.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase())}</span>
+            <span class="avatar">${escapar(iniciales(s.conductor))}</span>
             <div>
               <strong>${indice === 0 ? '★ ' : ''}${escapar(s.conductor)}</strong>
               <small>${s.verificado ? '✓ Verificado' : 'Estudiante'} · ${escapar(s.origen)}</small>
@@ -155,6 +261,12 @@ function pintarSugerencias(lista, zona) {
       <div><strong>${lista[0]?.confianza || 0}%</strong><span>mejor confianza</span></div>
       <div><strong>${lista.reduce((t, s) => t + s.minutos_estimados, 0)} min</strong><span>suma de trayectos</span></div>`;
   }
+
+  // Resalta en el mapa la zona de la sugerencia principal.
+  if (mapaLeaflet && lista[0]) {
+    const mejor = marcadores.get(lista[0].origen);
+    if (mejor) mejor.setStyle({ weight: 5, fillOpacity: 0.45 });
+  }
 }
 
 /* --------------------------------------------------------- peticiones */
@@ -210,6 +322,13 @@ async function iniciarMapa() {
 
   zonaSelect?.addEventListener('change', pedirSugerencias);
   turnoSelect?.addEventListener('change', pedirSugerencias);
+
+  // Leaflet se carga con 'defer': puede no estar listo todavia.
+  if (typeof L !== 'undefined') {
+    crearMapa();
+  } else {
+    window.addEventListener('load', crearMapa, { once: true });
+  }
 
   await pedirSugerencias();
 }

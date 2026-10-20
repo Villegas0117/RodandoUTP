@@ -23,32 +23,40 @@
 .ia-map-layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; align-items: start; }
 
 .ia-map-wrap { position: relative; padding: 18px; border-radius: 22px; background: radial-gradient(circle at 50% 45%, rgba(69,229,141,.07), transparent 62%), rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07); overflow: hidden; }
-.ia-map { width: 100%; height: auto; display: block; }
+.ia-map { width: 100%; height: 420px; border-radius: 14px; background: #0a1613; z-index: 1; }
 
-.ia-map .edge { stroke-width: 2.4; }
-.ia-map .edge-fast { stroke: rgba(69,229,141,.42); stroke-dasharray: 6 5; }
-.ia-map .edge-slow { stroke: rgba(150,180,168,.17); stroke-dasharray: 3 6; }
+/* Mosaicos de OSM en tema oscuro: se invierte la imagen y se corrige el
+   tinte para que las calles y las zonas sigan siendo legibles. */
+.ia-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) saturate(.55) contrast(.92); }
+.ia-map .leaflet-control-zoom a { background: #0c1d17; color: var(--green-soft); border-color: rgba(255,255,255,.12); }
+.ia-map .leaflet-control-zoom a:hover { background: #133026; color: white; }
+.ia-map .leaflet-control-attribution { background: rgba(6,17,14,.82); color: #8fb8a4; font-size: .64rem; }
+.ia-map .leaflet-control-attribution a { color: var(--green); }
+.ia-map .leaflet-tooltip { background: rgba(9,26,20,.95); border: 1px solid rgba(124,255,180,.2); color: #dfffe9; box-shadow: var(--shadow); font-size: .74rem; }
+.ia-map .leaflet-tooltip::before { border-top-color: rgba(124,255,180,.2); }
+.ia-map .leaflet-popup-content-wrapper { background: #0c1d17; color: var(--text); border: 1px solid rgba(114,255,176,.18); border-radius: 16px; box-shadow: var(--shadow); }
+.ia-map .leaflet-popup-tip { background: #0c1d17; border: 1px solid rgba(114,255,176,.18); }
+.ia-map .leaflet-popup-close-button { color: var(--muted) !important; }
+.ia-map .leaflet-popup-content { margin: 14px 16px; font-size: .82rem; line-height: 1.55; }
 
-.ia-map .zone { cursor: pointer; outline: none; }
-.ia-map .zone-halo { fill: rgba(69,229,141,.05); stroke: rgba(69,229,141,.18); stroke-width: 1.5; transition: .2s ease; }
-.ia-map .zone-dot { fill: #14563a; stroke: rgba(69,229,141,.4); stroke-width: 2; transition: .2s ease; }
-.ia-map .zone-label { fill: #dfffe9; font-size: 21px; font-weight: 700; font-family: 'Manrope', sans-serif; pointer-events: none; }
-.ia-map .zone-count { fill: #8fb8a4; font-size: 15px; pointer-events: none; }
-
-.ia-map .zone:hover .zone-halo,
-.ia-map .zone:focus-visible .zone-halo { fill: rgba(69,229,141,.15); stroke: rgba(69,229,141,.6); }
-.ia-map .zone-vacia .zone-dot { fill: #123326; stroke: rgba(150,180,168,.25); }
-.ia-map .zone-utp .zone-dot { fill: #1c7a4f; stroke: var(--lime); stroke-width: 3; }
-.ia-map .zone-origen .zone-halo { fill: rgba(180,255,102,.16); stroke: var(--lime); stroke-width: 2.5; }
-.ia-map .zone-origen .zone-dot { fill: #2b8f5c; stroke: var(--lime); stroke-width: 3; }
+.zona-popup strong { font-family: 'Manrope'; font-size: .92rem; display: block; margin-bottom: 7px; }
+.zona-popup .popup-stats { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: .74rem; }
+.zona-popup .popup-stats b { color: var(--green); font-size: .88rem; display: block; }
+.zona-popup .popup-best { margin-top: 8px; padding: 6px 9px; border-radius: 9px; background: rgba(69,229,141,.1); color: var(--green-soft); font-size: .74rem; }
+.zona-popup .popup-hint { margin-top: 6px; color: var(--muted); font-size: .7rem; }
 
 .ia-map-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 4px 0; color: var(--muted); font-size: .75rem; }
 .ia-map-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .ia-map-legend i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
-.ia-legend-origen { background: #2b8f5c; border: 2px solid var(--lime); }
-.ia-legend-utp { background: #1c7a4f; border: 2px solid var(--lime); }
-.ia-legend-normal { background: #14563a; border: 1.5px solid rgba(69,229,141,.4); }
-.ia-legend-vacia { background: #123326; border: 1.5px solid rgba(150,180,168,.3); }
+.ia-legend-origen { background: #45e58d; border: 2px solid #b4ff66; }
+.ia-legend-utp { background: #b4ff66; border: 2px solid #b4ff66; }
+.ia-legend-normal { background: #2f6b52; border: 1.5px solid rgba(69,229,141,.4); }
+.ia-legend-vacia { background: #3a4f46; border: 1.5px solid rgba(150,180,168,.3); }
+.ia-legend-edge { width: 18px !important; height: 0 !important; border-radius: 0 !important; border-top: 2px dashed #45e58d; }
+
+.ia-map-credit { margin: 10px 0 0; font-size: .68rem; color: #6f8a7d; }
+.ia-map-credit a { color: #8fb8a4; text-decoration: underline; }
+.ia-map-offline { margin: 10px 0 0; padding: 10px 13px; border-radius: 12px; background: rgba(255,168,89,.08); border: 1px solid rgba(255,168,89,.2); color: #ffd0a3; font-size: .78rem; }
 
 /* --------------------------------------------------- sugerencias */
 

@@ -24,18 +24,30 @@ import re
 # --------------------------------------------------------------------------
 # 1. Grafo de zonas de la region de Puebla
 #   clave = (zona_a, zona_b) -> minutos aproximados de trayecto
+#   Los minutos se derivan de la distancia real entre zonas (haversine)
+#   asumiendo unos 30 km/h de trafico urbano en Puebla mas un margen.
 # --------------------------------------------------------------------------
 
+# Coordenadas de referencia de cada zona (WGS84).
+COORDENADAS = {
+    'Cholula':      (19.0641, -98.3035),
+    'Angelópolis':  (19.0319, -98.2325),
+    'Amozoc':       (19.1167, -98.3997),
+    'Centro':       (19.0414, -98.2063),
+    'La Margarita': (18.9580, -98.2830),
+    'UTP':          (19.0490, -98.3420),
+}
+
 TIEMPOS = {
-    ('UTP', 'Cholula'): 15,
-    ('Cholula', 'Angelópolis'): 25,
-    ('UTP', 'Angelópolis'): 10,
-    ('UTP', 'La Margarita'): 35,
+    ('UTP', 'Cholula'): 10,
+    ('Cholula', 'Angelópolis'): 20,
+    ('UTP', 'Angelópolis'): 20,
+    ('UTP', 'La Margarita'): 30,
     ('UTP', 'Centro'): 30,
-    ('UTP', 'Amozoc'): 55,
-    ('Angelópolis', 'Centro'): 20,
-    ('Centro', 'La Margarita'): 40,
-    ('La Margarita', 'Amozoc'): 30,
+    ('UTP', 'Amozoc'): 30,
+    ('Angelópolis', 'Centro'): 10,
+    ('Centro', 'La Margarita'): 30,
+    ('La Margarita', 'Amozoc'): 45,
 }
 
 # Peso "socioeconomico" de la zona para la prioridad (0.0 - 1.0).
@@ -58,6 +70,32 @@ for (a, b), minutos in TIEMPOS.items():
 def minutos_entre(zona_a, zona_b):
     """Trayecto directo o 0 si no hay arista directa."""
     return VECINOS.get(zona_a, {}).get(zona_b, 0)
+
+
+def distancia_km(zona_a, zona_b):
+    """
+    Distancia en linea recta entre dos zonas, en kilometros (haversine).
+    Se usa para mostrar la distancia real en el mapa y para comprobar que
+    los tiempos del grafo son proporcionales al territorio.
+    """
+    if zona_a not in COORDENADAS or zona_b not in COORDENADAS:
+        return None
+    lat1, lon1 = COORDENADAS[zona_a]
+    lat2, lon2 = COORDENADAS[zona_b]
+    radio = 6371.0
+    f1, f2 = math.radians(lat1), math.radians(lat2)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(f1) * math.cos(f2) * math.sin(dlon / 2) ** 2
+    return round(2 * radio * math.asin(math.sqrt(a)), 1)
+
+
+def conexiones_detalladas():
+    """Aristas del grafo con minutos y distancia real, para dibujar el mapa."""
+    return [
+        {'de': a, 'a': b, 'minutos': m, 'km': distancia_km(a, b)}
+        for (a, b), m in TIEMPOS.items()
+    ]
 
 
 def ruta_mas_corta(origen, destino):

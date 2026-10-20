@@ -163,14 +163,16 @@ def verificar_password(password, hash_hex, salt_hex):
 # Semilla de datos de demostracion
 # --------------------------------------------------------------------------
 
-# id, nombre, latitud, longitud, coordenada X del mapa, coordenada Y del mapa
+# id, nombre, latitud, longitud, coordenada X del mapa SVG, coordenada Y del mapa
+# Las coordenadas son reales (WGS84) y se usan para colocar los marcadores
+# sobre los mosaicos de OpenStreetMap.
 ZONAS_SEMILLA = [
-    (1, 'Cholula',      19.2210, -98.3060, 430, 118),
-    (2, 'Angelópolis',  19.0150, -98.2780, 572, 430),
-    (3, 'Amozoc',       19.1180, -98.4000, 238, 512),
-    (4, 'Centro',       18.9700, -98.2500, 742, 322),
-    (5, 'La Margarita', 18.9400, -98.3200, 512, 604),
-    (6, 'UTP',          19.0500, -98.3400, 408, 300),
+    (1, 'Cholula',      19.0641, -98.3035, 430, 118),
+    (2, 'Angelópolis',  19.0319, -98.2325, 572, 430),
+    (3, 'Amozoc',       19.1167, -98.3997, 238, 512),
+    (4, 'Centro',       19.0414, -98.2063, 742, 322),
+    (5, 'La Margarita', 18.9580, -98.2830, 512, 604),
+    (6, 'UTP',          19.0490, -98.3420, 408, 300),
 ]
 
 # nombre, correo, contrasena, rol, zona, matricula, verificado
@@ -262,6 +264,26 @@ def sembrar():
         )
         conn.commit()
     return True
+
+
+def refrescar_zonas():
+    """
+    Actualiza las coordenadas de las zonas sin tocar el resto de los datos.
+    Sirve para corregir la geolocalizacion cuando se ajustan los datos de
+    referencia, sin perder las cuentas ni las rutas ya creadas.
+    """
+    init_db()
+    conn = get_connection()
+    actualizados = 0
+    with _write_lock:
+        for _id, nombre, lat, lng, mapa_x, mapa_y in ZONAS_SEMILLA:
+            cur = conn.execute(
+                'UPDATE zonas SET lat = ?, lng = ?, mapa_x = ?, mapa_y = ?'
+                ' WHERE nombre = ?', (lat, lng, mapa_x, mapa_y, nombre),
+            )
+            actualizados += cur.rowcount
+        conn.commit()
+    return actualizados
 
 
 def reiniciar():

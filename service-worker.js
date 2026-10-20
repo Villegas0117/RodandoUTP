@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rodando-utp-v3';
+const CACHE_NAME = 'rodando-utp-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -10,6 +10,11 @@ const APP_SHELL = [
   './js/sesion.js',
   './js/auth.js',
   './js/mapa-ia.js',
+  './vendor/leaflet/leaflet.js',
+  './vendor/leaflet/leaflet.css',
+  './vendor/leaflet/images/marker-icon.png',
+  './vendor/leaflet/images/marker-icon-2x.png',
+  './vendor/leaflet/images/marker-shadow.png',
   './manifest.webmanifest',
   './data/rutas.json',
   './img/hero-carpool.svg',
@@ -45,6 +50,11 @@ self.addEventListener('fetch', (event) => {
 
   // El panel de administrador nunca se sirve desde la cache.
   if (new URL(event.request.url).pathname.startsWith('/admin')) return;
+
+  // Los mosaicos de OpenStreetMap se piden siempre a la red: cachearlos
+  // en masa incumpliria la politica de uso de OSM. Si no hay conexion,
+  // Leaflet muestra el fondo y las zonas siguen visibles.
+  if (event.request.url.includes('tile.openstreetmap.org')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

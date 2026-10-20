@@ -60,10 +60,11 @@ En total se siembran 14 usuarios (1 administrador, 6 conductores, 7 estudiantes)
 | `admin.html` | Panel de administración de usuarios. |
 | `js/sesion.js` | Estado de sesión compartido entre páginas. |
 | `js/app.js` | Filtros, reservas, publicación e instalación de la PWA. |
-| `js/mapa-ia.js` | Mapa por zonas y tarjetas de sugerencias. |
+| `js/mapa-ia.js` | Mapa por zonas (Leaflet + OpenStreetMap) y tarjetas de sugerencias. |
 | `js/auth.js` / `js/admin.js` | Lógica de acceso y del panel. |
 | `css/styles.css` | Diseño base verde/oscuro. |
 | `css/mapa-ia.css`, `css/auth.css`, `css/admin.css` | Estilos de cada sección. |
+| `vendor/leaflet/` | Leaflet 1.9.4 (BSD-2-Clause) incluido en el repo. |
 | `data/rutas.json` | Datos de respaldo si el servidor no está disponible. |
 | `manifest.webmanifest` | Metadatos de instalación de la PWA. |
 | `service-worker.js` | Caché del app shell y soporte sin conexión. |
@@ -145,6 +146,8 @@ La aplicación separa deliberadamente lo que se puede cachear de lo que no:
 | Recurso | Comportamiento | Motivo |
 |---|---|---|
 | `index.html`, `css/`, `js/`, `img/` | Service Worker **cache-first** + revalidación en segundo plano | Permite usar la app sin conexión. |
+| `vendor/leaflet/` | Service Worker **cache-first** | La biblioteca se guarda para que el mapa funcione sin internet. |
+| Mosaicos de OpenStreetMap | **Nunca se cachean** | Cachearlos en masa incumpliría la política de uso de OSM. |
 | Archivos estáticos servidos por HTTP | `Cache-Control: no-cache` | Se guardan, pero siempre se revalidan contra el servidor. |
 | **Endpoints de lectura cacheables** | **Caché en servidor (TTL 30 s) + `ETag` + `private, no-cache`** | Ver la sección siguiente. |
 | `/api/sesion`, `/api/mis-reservas` | `Cache-Control: no-store` | Son datos de sesión: nunca se almacenan. |
@@ -202,6 +205,42 @@ invalidaciones), un botón para vaciarla y una demostración en vivo del ciclo
 
 El TTL de la caché del servidor se puede ajustar con la variable de entorno
 `RODANDO_CACHE_TTL` (por defecto 30 segundos).
+
+## Mapa inteligente con OpenStreetMap
+
+El mapa usa **Leaflet 1.9.4** con los mosaicos de **OpenStreetMap**: una
+alternativa libre y abierta que no necesita clave de API, ni cuenta, ni
+cTarjeta, a diferencia de los mapas proprietary.
+
+| Decisión | Detalle |
+|---|---|
+| Leaflet está **incluido en el repo** (`vendor/leaflet/`) | El proyecto no depende de un CDN: se carga igual sin internet y el Service Worker lo guarda en caché. |
+| Mosaicos de `tile.openstreetmap.org` | Se piden siempre a la red, nunca se cachean en masa: cachearlos incumpliría la política de uso de OSM. |
+| Atribución visible | En el pie del mapa: *Mosaicos © OpenStreetMap · Datos de mapa © colaboradores de OSM*, como exige la licencia. |
+| Tema oscuro | Un filtro CSS invierte los mosaicos para que encajen con el resto de la interfaz. |
+| Sin conexión | Si los mosaicos no cargan, se avisa con un mensaje y las zonas, las aristas y las sugerencias siguen funcionando sobre el modelo interno. |
+
+### Las zonas sobre el territorio real
+
+Cada zona tiene coordenadas **WGS84 reales**, que se guardan en la tabla
+`zonas` y se usan para colocar los marcadores:
+
+| Zona | Latitud | Longitud |
+|---|---|---|
+| Cholula | 19.0641 | -98.3035 |
+| Angelópolis | 19.0319 | -98.2325 |
+| Amozoc | 19.1167 | -98.3997 |
+| Centro | 19.0414 | -98.2063 |
+| La Margarita | 18.9580 | -98.2830 |
+| UTP | 19.0490 | -98.3420 |
+
+Las aristas del grafo se dibujan sobre el mapa con su tiempo de trayecto, y
+el tooltip muestra también la distancia real en kilómetros (calculada con
+haversine). Los minutos del grafo se derivan de esas distancias, así que el
+modelo y lo que se ve en el mapa coinciden.
+
+Si se actualizan las coordenadas, `server.py` las refresca solo al arrancar,
+sin perder las cuentas ni las rutas ya creadas.
 
 ## Pruebas
 

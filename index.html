@@ -10,6 +10,7 @@
   <link rel="icon" href="img/icon-192.png" type="image/png">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/mapa-ia.css">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -160,17 +161,19 @@
 
           <div class="ia-map-layout">
             <div class="ia-map-wrap">
-              <svg class="ia-map" id="mapaBox" viewBox="0 0 980 720" role="img"
-                   aria-label="Mapa por zonas de la región de Puebla con los conductores disponibles">
-                <g id="mapaConexiones"></g>
-                <g id="mapaZonas"></g>
-              </svg>
+              <div id="mapaBox" class="ia-map" role="application"
+                   aria-label="Mapa de la región de Puebla con las zonas donde hay conductores de Rodando UTP"></div>
               <div class="ia-map-legend">
                 <span><i class="ia-legend-origen"></i> Tu zona</span>
                 <span><i class="ia-legend-utp"></i> UTP</span>
                 <span><i class="ia-legend-normal"></i> Con rutas</span>
                 <span><i class="ia-legend-vacia"></i> Sin rutas</span>
+                <span><i class="ia-legend-edge"></i> Conexión entre zonas</span>
               </div>
+              <p class="ia-map-credit">Mosaicos © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Datos de mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores de OSM</a></p>
+              <p class="ia-map-offline" id="mapaOffline" hidden>
+                ⚠ No se pudieron cargar los mosaicos del mapa. Las zonas y las sugerencias siguen calculándose con el modelo interno.
+              </p>
             </div>
 
             <div class="sugerencias-box" id="sugerenciasBox" aria-live="polite"></div>
@@ -252,6 +255,7 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="vendor/leaflet/leaflet.js" defer></script>
   <script src="js/sesion.js" defer></script>
   <script src="js/mapa-ia.js" defer></script>
   <script src="js/app.js" defer></script>
