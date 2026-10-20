@@ -114,6 +114,40 @@ def main():
              'no-cache' in cab_html.get('Cache-Control', ''),
              cab_html.get('Cache-Control', '(sin cabecera)'))
 
+    print('\n-- Dependencias de scripts por pagina --')
+    # Cada pagina que llama a api() / obtenerSesion() / cerrarSesion() necesita
+    # cargar js/sesion.js, que es donde se definen. Si falta, el navegador
+    # lanza "api is not defined" y la pagina queda inutilizable.
+    for pagina in ('index.html', 'login.html', 'admin.html'):
+        _, cuerpo, _ = pedir_com_cabeceras(f'/{pagina}')
+        texto_pagina = cuerpo.decode('utf-8', 'ignore')
+        usa_api = any(fn in texto_pagina for fn in (
+            'api(', 'obtenerSesion', 'cerrarSesion', 'pintarSesion', 'notificar('))
+        # Los scripts tambien se cargan desde los .js que la pagina incluye.
+        scripts = [s for s in ('sesion.js', 'auth.js', 'admin.js', 'app.js',
+                               'mapa-ia.js') if f'js/{s}' in texto_pagina]
+        cuerpo_js = ''
+        for s in scripts:
+            _, c, _ = pedir_com_cabeceras(f'/js/{s}')
+            cuerpo_js += c.decode('utf-8', 'ignore')
+
+        necesita_sesion = any(fn in cuerpo_js for fn in (
+            'api(', 'obtenerSesion(', 'cerrarSesion(', 'pintarSesion(', 'notificar('))
+
+        if necesita_sesion:
+            chequear(f'{pagina} carga js/sesion.js (lo necesita)',
+                     'js/sesion.js' in texto_pagina,
+                     f'scripts: {", ".join(scripts) or "ninguno"}')
+
+    # El orden importa con 'defer': los scripts se ejecutan en el orden
+    # en que aparecen, y auth.js usa lo que define sesion.js.
+    _, cuerpo_login, _ = pedir_com_cabeceras('/login.html')
+    texto_login = cuerpo_login.decode('utf-8', 'ignore')
+    pos_sesion = texto_login.find('js/sesion.js')
+    pos_auth = texto_login.find('js/auth.js')
+    chequear('login.html carga sesion.js antes que auth.js',
+             pos_sesion != -1 and pos_auth != -1 and pos_sesion < pos_auth)
+
     print('\n-- Recursos del mapa --')
     for ruta in ('/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css',
                  '/vendor/leaflet/images/marker-icon.png',
