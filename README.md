@@ -47,8 +47,9 @@ En total se siembran 14 usuarios (1 administrador, 6 conductores, 7 estudiantes)
 |---|---|
 | `server.py` | Servidor HTTP, archivos estáticos y API JSON en `/api/*`. |
 | `database.py` | Esquema SQLite, semilla de datos, contraseñas y consultas. |
+| `cache.py` | Caché de la API: TTL, invalidación por generación y ETag. |
 | `ia_simulada.py` | Motor de sugerencias determinista (grafo de zonas). |
-| `pruebas_backend.py` | 61 pruebas automáticas del backend. |
+| `pruebas_backend.py` | 87 pruebas automáticas del backend. |
 
 ### Frontend
 
@@ -102,6 +103,8 @@ además los `.py`, los metadatos de Git y cualquier ruta fuera del proyecto.
 | `GET` | `/api/admin/usuarios` | **admin** | Lista usuarios y resumen. |
 | `DELETE` | `/api/admin/usuarios?id=N` | **admin** | Elimina un usuario. |
 | `GET` | `/api/admin/bitacora` | **admin** | Últimos movimientos. |
+| `GET` | `/api/admin/cache` | **admin** | Estadísticas de la caché. |
+| `POST` | `/api/admin/cache?limpiar=1` | **admin** | Vacía la caché. |
 | `POST` | `/api/admin/reset?confirmar=1` | **admin** | Reinicia la base. |
 
 `admin.html` está protegida en el propio servidor: sin sesión responde `401` y
@@ -143,18 +146,62 @@ La aplicación separa deliberadamente lo que se puede cachear de lo que no:
 |---|---|---|
 | `index.html`, `css/`, `js/`, `img/` | Service Worker **cache-first** + revalidación en segundo plano | Permite usar la app sin conexión. |
 | Archivos estáticos servidos por HTTP | `Cache-Control: no-cache` | Se guardan, pero siempre se revalidan contra el servidor. |
-| **`/api/*` (toda la API)** | **`Cache-Control: no-store`** | Son datos de sesión y mutables. Cachearlos rompería el login y el panel. |
+| **Endpoints de lectura cacheables** | **Caché en servidor (TTL 30 s) + `ETag` + `private, no-cache`** | Ver la sección siguiente. |
+| `/api/sesion`, `/api/mis-reservas` | `Cache-Control: no-store` | Son datos de sesión: nunca se almacenan. |
 | `/admin*` | Nunca entra a la caché del Service Worker | El panel exige sesión de administrador. |
 
 El Service Worker ignora por completo las rutas que empiezan con `/api/` o
-`/admin`, así que esas peticiones siempre llegan al servidor. En la API,
-`no-store` evita que el navegador aplique heurísticas de frescura y sirva datos
-obsoletos.
+`/admin`, así que esas peticiones siempre llegan al servidor.
+
+### Cómo funciona la caché de la API
+
+Implementada en `cache.py` y aplicada en `server.py`. Son dos mecanismos
+complementarios:
+
+**1. Caché en el servidor (TTL + invalidación por generación).**
+
+Las respuestas JSON de los endpoints de lectura se guardan en memoria durante
+30 segundos. Para invalidarlas de forma inmediata y sin recorrer la caché, cada
+respuesta se etiqueta con un **grupo** (`rutas`, `usuarios`, `ia`) y el grupo
+lleva un número de **generación** que forma parte de la clave. Cuando cambia un
+dato se incrementa la generación del grupo y todas sus entradas quedan
+invalidadas de golpe:
+
+| Operación | Invalida |
+|---|---|
+| Publicar una ruta | `rutas`, `ia` |
+| Reservar un lugar | `rutas`, `ia` |
+| Registrar o eliminar un usuario | `usuarios` (y `rutas`, `ia` al eliminar) |
+| Reiniciar la base de datos | Todo |
+
+**2. Revalidación condicional con `ETag`.**
+
+Cada respuesta cacheable lleva una huella `ETag` de su cuerpo. Si el cliente
+la vuelve a pedir con `If-None-Match`, el servidor contesta `304 Not Modified`
+**sin cuerpo**. El navegador conserva la respuesta y el servidor sigue siendo
+quien decide si sigue siendo válida: nunca hay datos obsoletos, solo se
+ahorra ancho de banda.
+
+```
+Petición 1: X-Cache: MISS  |  ETag: "7c8ff6c6…"  |  3408 bytes
+Petición 2: X-Cache: HIT   |  ETag: "7c8ff6c6…"  |  3408 bytes
+Revalidación: HTTP 304     |                      |     0 bytes
+```
+
+El encabezado `X-Cache` indica si la respuesta vino de la caché (`HIT`) o se
+calculó en ese momento (`MISS`). Se puede ver en DevTools → Network.
+
+**El panel de administración incluye una sección "Caché de la API"** con las
+estadísticas (entradas, aciertos, fallos, tasa de aciertos, respuestas 304 e
+invalidaciones), un botón para vaciarla y una demostración en vivo del ciclo
+`MISS → HIT → 304`.
 
 > **Al desarrollar:** el Service Worker sirve primero desde la caché. Si tocas un
 > `.js` o un `.css` y no ves el cambio, ve a DevTools → Application → Service
 > Workers y pulsa *Unregister*, o sube `CACHE_NAME` en `service-worker.js`.
-> La caché de la API no interfiere con esto.
+
+El TTL de la caché del servidor se puede ajustar con la variable de entorno
+`RODANDO_CACHE_TTL` (por defecto 30 segundos).
 
 ## Pruebas
 

@@ -44,6 +44,20 @@ def pedir_bruto(ruta):
         return e.code
 
 
+def pedir_com_cabeceras(ruta, cabeceras_extra=None, metodo='GET', cookie=None):
+    """Devuelve (estado, cuerpo, cabeceras) de una respuesta."""
+    req = urllib.request.Request(BASE + ruta, method=metodo)
+    for clave, valor in (cabeceras_extra or {}).items():
+        req.add_header(clave, valor)
+    if cookie:
+        req.add_header('Cookie', cookie)
+    try:
+        with urllib.request.urlopen(req) as r:
+            return r.status, r.read(), dict(r.headers)
+    except urllib.error.HTTPError as e:
+        return e.code, e.read(), dict(e.headers)
+
+
 def cabeceras(ruta):
     """Devuelve el diccionario de cabeceras de una respuesta."""
     try:
@@ -85,11 +99,14 @@ def main():
 
     print('\n-- Estrategia de caché --')
     cab_api = cabeceras('/api/rutas')
-    chequear('La API se marca como no-cacheable',
-             'no-store' in cab_api.get('Cache-Control', ''),
+    chequear('La API cacheable se guarda pero se revalida siempre',
+             'no-cache' in cab_api.get('Cache-Control', '') and
+             'private' in cab_api.get('Cache-Control', ''),
              cab_api.get('Cache-Control', '(sin cabecera)'))
+    chequear('La API cacheable no se guarda en cachés compartidas',
+             'no-store' not in cab_api.get('Cache-Control', ''))
     cab_sesion = cabeceras('/api/sesion')
-    chequear('La sesión tampoco se cachea',
+    chequear('La sesión no se cachea en absoluto',
              'no-store' in cab_sesion.get('Cache-Control', ''),
              cab_sesion.get('Cache-Control', '(sin cabecera)'))
     cab_html = cabeceras('/index.html')
@@ -125,6 +142,129 @@ def main():
     chequear('Sin sesión tampoco (401)', s == 401)
     s, d, _ = pedir('/api/admin/usuarios', cookie=token_admin)
     chequear('El administrador sí entra al panel', s == 200, f"total={d['resumen']['total']}")
+
+    print('\n-- Caché de la API --')
+    # Se fuerza un estado conocido: la caché se vacía antes de empezar.
+    s, _, _ = pedir('/api/admin/cache?limpiar=1', 'POST', cookie=token_admin)
+    chequear('Se puede vaciar la caché', s == 200)
+
+    estado, cuerpo1, cab1 = pedir_com_cabeceras('/api/rutas')
+    chequear('La primera petición se marca como MISS',
+             cab1.get('X-Cache') == 'MISS', cab1.get('X-Cache', '(sin cabecera)'))
+    chequear('La respuesta cacheable lleva ETag', bool(cab1.get('ETag')))
+    chequear('La respuesta cacheable se puede revalidar',
+             'no-cache' in cab1.get('Cache-Control', ''), cab1.get('Cache-Control', ''))
+
+    estado, cuerpo2, cab2 = pedir_com_cabeceras('/api/rutas')
+    chequear('La segunda petición se sirve desde la caché',
+             cab2.get('X-Cache') == 'HIT', cab2.get('X-Cache', '(sin cabecera)'))
+    chequear('El ETag no cambia entre llamadas', cab1.get('ETag') == cab2.get('ETag'))
+    chequear('El cuerpo servido es idéntico', cuerpo1 == cuerpo2)
+
+    # Revalidación condicional: el navegador ya tiene la respuesta.
+    etag = cab1.get('ETag')
+    estado, cuerpo3, cab3 = pedir_com_cabeceras('/api/rutas', {'If-None-Match': etag})
+    chequear('Con If-None-Match el servidor responde 304', estado == 304, f'HTTP {estado}')
+    chequear('El 304 no lleva cuerpo', len(cuerpo3) == 0, f'{len(cuerpo3)} bytes')
+    chequear('El 304 conserva el ETag', cab3.get('ETag') == etag)
+
+    # Un ETag distinto NO debe producir 304.
+    estado, _, _ = pedir_com_cabeceras('/api/rutas', {'If-None-Match': '"inventado"'})
+    chequear('Un ETag distinto devuelve la respuesta completa', estado == 200, f'HTTP {estado}')
+
+    # Los endpoints de sesión NUNCA se cachean.
+    for ruta in ('/api/sesion', '/api/mis-reservas'):
+        _, _, cab = pedir_com_cabeceras(ruta, cookie=token_est)
+        chequear(f'{ruta} nunca se cachea',
+                 'no-store' in cab.get('Cache-Control', '') and 'X-Cache' not in cab,
+                 cab.get('Cache-Control', '(sin cabecera)'))
+
+    # La caché se invalida al cambiar los datos.
+    _, antes, _ = pedir_com_cabeceras('/api/rutas')
+    total_antes = len(json.loads(antes)['rutas'])
+    correo_cache = f'cache{int(time.time())}@rodandoutp.mx'
+    s, nuevo, _ = pedir('/api/registro', 'POST',
+                        {'nombre': 'Usuario Cache', 'correo': correo_cache,
+                         'password': 'clave123', 'zona': 'Centro'})
+    id_cache = nuevo['usuario']['id']
+    s, _, _ = pedir('/api/login', 'POST', {'correo': correo_cache, 'password': 'clave123'})
+    _, _, ck_cache = pedir('/api/login', 'POST',
+                           {'correo': correo_cache, 'password': 'clave123'})
+    token_cache = token_de(s, ck_cache)
+    s, pub, _ = pedir('/api/rutas', 'POST',
+                      {'origin': 'Centro', 'meetingPoint': 'Ruta de prueba de caché',
+                       'departure': '10:30', 'seats': 2, 'contribution': 28}, cookie=token_cache)
+    chequear('Se publica una ruta para probar la invalidación', s == 200)
+
+    _, _, cab = pedir_com_cabeceras('/api/rutas')
+    chequear('Publicar una ruta invalida la caché', cab.get('X-Cache') == 'MISS',
+             cab.get('X-Cache', '(sin cabecera)'))
+    _, despues, _ = pedir_com_cabeceras('/api/rutas')
+    datos_despues = json.loads(despues)
+    chequear('La ruta nueva aparece de inmediato',
+             any(r['meetingPoint'] == 'Ruta de prueba de caché' for r in datos_despues['rutas']),
+             f"{total_antes} → {len(datos_despues['rutas'])} rutas")
+
+    # Reservar un lugar también cambia los contadores.
+    s, _, cab = pedir_com_cabeceras('/api/ruta?id=1')
+    chequear('Consultar una ruta se cachea', cab.get('X-Cache') in ('MISS', 'HIT'),
+             cab.get('X-Cache', '(sin cabecera)'))
+
+    # Limpieza de los datos de prueba.
+    s, d, _ = pedir(f'/api/admin/usuarios?id={id_cache}&force=1', 'DELETE', cookie=token_admin)
+    chequear('Se limpia el usuario de prueba de caché', s == 200, d.get('mensaje', ''))
+    _, _, cab = pedir_com_cabeceras('/api/rutas')
+    chequear('Borrar un usuario también invalida la caché', cab.get('X-Cache') == 'MISS',
+             cab.get('X-Cache', '(sin cabecera)'))
+
+    s, d, _ = pedir('/api/admin/cache', cookie=token_admin)
+    chequear('El panel de caché expone las estadísticas', s == 200 and 'estadisticas' in d)
+    chequear('Las estadísticas cuentan aciertos y fallos',
+             'aciertos' in d['estadisticas'] and 'fallos' in d['estadisticas'])
+    s, _, _ = pedir('/api/admin/cache')
+    chequear('El panel de caché exige sesión de administrador', s == 401)
+
+    print('\n-- Contrato entre la API y el frontend --')
+    # El frontend consume claves concretas de la API. Si una de estas
+    # desaparece, la pagina cae en silencio al respaldo y deja de mostrar
+    # datos reales: estas pruebas fijan el contrato.
+    s, d, _ = pedir('/api/rutas')
+    chequear('/api/rutas entrega la lista "rutas"',
+             isinstance(d.get('rutas'), list) and len(d['rutas']) > 0,
+             f"{len(d.get('rutas', []))} rutas")
+    if d.get('rutas'):
+        r0 = d['rutas'][0]
+        claves_ruta = ['id', 'driver', 'origin', 'meetingPoint', 'destination',
+                       'departure', 'arrival', 'seats', 'contribution',
+                       'rating', 'verified', 'days']
+        faltan = [c for c in claves_ruta if c not in r0]
+        chequear('Cada ruta trae las claves que usa la interfaz',
+                 not faltan, f'faltan: {faltan}' if faltan else 'todas presentes')
+
+    s, d, _ = pedir('/api/zonas')
+    chequear('/api/zonas entrega "zonas" con coordenadas de mapa',
+             isinstance(d.get('zonas'), list) and
+             all('mapa_x' in z and 'mapa_y' in z for z in d['zonas']),
+             f"{len(d.get('zonas', []))} zonas")
+    chequear('/api/zonas entrega las conexiones entre zonas',
+             isinstance(d.get('conexiones'), list) and len(d['conexiones']) > 0,
+             f"{len(d.get('conexiones', []))} conexiones")
+
+    s, d, _ = pedir('/api/sesion', cookie=token_est)
+    chequear('/api/sesion entrega "usuario" y "autenticado"',
+             'usuario' in d and 'autenticado' in d)
+
+    s, d, _ = pedir('/api/admin/usuarios', cookie=token_admin)
+    chequear('/api/admin/usuarios entrega "usuarios", "resumen" y "usuario_actual"',
+             all(k in d for k in ('usuarios', 'resumen', 'usuario_actual')))
+    s, d, _ = pedir('/api/admin/bitacora', cookie=token_admin)
+    chequear('/api/admin/bitacora entrega "bitacora"', isinstance(d.get('bitacora'), list))
+
+    # El JSON estatico y la API usan nombres distintos: el frontend debe
+    # saber leer ambos.
+    s, d, _ = pedir('/api/admin/cache', cookie=token_admin)
+    chequear('/api/admin/cache entrega "estadisticas"',
+             'estadisticas' in d and 'aciertos' in d['estadisticas'])
 
     print('\n-- Motor de sugerencias (IA simulada) --')
     s, d, _ = pedir('/api/ia/sugerir?zona=Cholula&turno=morning', cookie=token_est)

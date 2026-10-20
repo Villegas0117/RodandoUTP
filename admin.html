@@ -61,6 +61,10 @@
           </tbody>
         </table>
       </div>
+      <div class="cache-demo">
+        <button class="btn btn-small btn-outline" id="cacheDemo" type="button">Probar caché: dos llamadas seguidas</button>
+        <pre class="cache-demo-out" id="cacheDemoOut" aria-live="polite">Pulsa el botón para ver la respuesta del servidor a dos peticiones iguales.</pre>
+      </div>
     </section>
 
     <section class="admin-card">
@@ -69,6 +73,17 @@
         <span class="muted-note">Últimos movimientos registrados en la base de datos</span>
       </div>
       <ul class="log-list" id="logList"><li class="table-empty">Cargando…</li></ul>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <h2>Caché de la API</h2>
+        <div class="admin-filters">
+          <button class="btn btn-small btn-ghost" id="cacheClear" type="button">Vaciar caché</button>
+        </div>
+      </div>
+      <p class="muted-note" id="cacheNota">Las respuestas de lectura se guardan en memoria en el servidor durante 30 segundos y se revalidan en el navegador con ETag (respuesta 304 sin cuerpo). La caché se invalida al publicar rutas, reservar lugares o eliminar usuarios.</p>
+      <div class="stat-grid" id="cacheStats"></div>
     </section>
 
     <section class="admin-card danger-zone">

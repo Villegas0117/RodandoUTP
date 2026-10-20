@@ -149,6 +149,66 @@ async function eliminarUsuario(id) {
   }
 }
 
+/* --------------------------------------------------------- caché de la API */
+
+async function cargarCache() {
+  try {
+    const datos = await api('/admin/cache');
+    const e = datos.estadisticas;
+    const tarjetas = [
+      { valor: e.entradas, texto: 'Entradas en caché' },
+      { valor: `${e.tasa_aciertos}%`, texto: 'Tasa de aciertos' },
+      { valor: e.aciertos, texto: 'Aciertos' },
+      { valor: e.fallos, texto: 'Fallos' },
+      { valor: e.respuestas_304, texto: 'Respuestas 304' },
+      { valor: e.invalidaciones, texto: 'Invalidaciones' },
+    ];
+    const caja = document.querySelector('#cacheStats');
+    if (caja) {
+      caja.innerHTML = tarjetas.map(t => `
+        <div class="stat-card">
+          <strong>${t.valor}</strong><span>${t.texto}</span>
+        </div>`).join('');
+    }
+  } catch { /* el panel de caché es informativo */ }
+}
+
+/** Demuestra en vivo el MISS -> HIT y la revalidación 304. */
+document.querySelector('#cacheDemo')?.addEventListener('click', async () => {
+  const salida = document.querySelector('#cacheDemoOut');
+  const linea = [];
+
+  for (let i = 1; i <= 2; i++) {
+    const respuesta = await fetch('/api/rutas', { credentials: 'same-origin' });
+    const estado = respuesta.headers.get('X-Cache') || '(sin cabecera)';
+    const etag = respuesta.headers.get('ETag') || '-';
+    const bytes = (await respuesta.arrayBuffer()).byteLength;
+    linea.push(`Petición ${i}: X-Cache: ${estado}  |  ETag: ${etag}  |  ${bytes} bytes`);
+  }
+
+  // Tercera llamada: revalidación condicional con el ETag ya conocido.
+  const conEtag = await fetch('/api/rutas', { credentials: 'same-origin' });
+  const etag = conEtag.headers.get('ETag');
+  const revalidada = await fetch('/api/rutas', {
+    credentials: 'same-origin',
+    headers: { 'If-None-Match': etag },
+  });
+  const bytes304 = (await revalidada.arrayBuffer()).byteLength;
+  linea.push(`Revalidación (If-None-Match): HTTP ${revalidada.status}  |  ${bytes304} bytes de cuerpo`);
+
+  if (salida) salida.textContent = linea.join('\n');
+});
+
+document.querySelector('#cacheClear')?.addEventListener('click', async () => {
+  try {
+    const datos = await api('/admin/cache?limpiar=1', { method: 'POST' });
+    mostrarToast(datos.mensaje);
+    await cargarCache();
+  } catch (error) {
+    mostrarToast(error.message);
+  }
+});
+
 /* --------------------------------------------------------- eventos */
 
 document.querySelector('#confirmDelete')?.addEventListener('click', async () => {
@@ -208,7 +268,7 @@ async function iniciar() {
   document.querySelector('#adminName').textContent = sesion.usuario.nombre;
 
   try {
-    await Promise.all([cargarUsuarios(), cargarBitacora()]);
+    await Promise.all([cargarUsuarios(), cargarBitacora(), cargarCache()]);
   } catch (error) {
     usersBody.innerHTML = `<tr><td colspan="7" class="table-empty">${escapar(error.message)}</td></tr>`;
   }

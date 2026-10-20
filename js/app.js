@@ -93,7 +93,9 @@ async function loadRoutes() {
     const respuesta = await fetch('/api/rutas', { credentials: 'same-origin' });
     if (respuesta.ok) {
       const data = await respuesta.json();
-      routes = [...getLocalRoutes(), ...data.routes];
+      // La API usa 'rutas' y el JSON estatico usa 'routes'.
+      const lista = data.rutas || data.routes || [];
+      routes = [...getLocalRoutes(), ...lista];
       renderRoutes(routes);
       return;
     }
@@ -103,7 +105,7 @@ async function loadRoutes() {
     const response = await fetch('data/rutas.json');
     if (!response.ok) throw new Error('No se pudo cargar el JSON');
     const data = await response.json();
-    routes = [...getLocalRoutes(), ...data.routes];
+    routes = [...getLocalRoutes(), ...(data.routes || data.rutas || [])];
     renderRoutes(routes);
   } catch (error) {
     routes = getLocalRoutes();

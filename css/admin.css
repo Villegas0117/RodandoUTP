@@ -60,10 +60,19 @@
 .danger-zone p { color: var(--muted); font-size: .88rem; max-width: 640px; }
 .btn-danger { color: #2b0808; background: linear-gradient(135deg, #ff9d9d, #ff6b6b); box-shadow: 0 12px 30px rgba(255,90,90,.18); }
 
+/* --------------------------------------------------- caché de la API */
+
+.cache-demo { margin-top: 16px; display: grid; gap: 10px; justify-items: start; }
+.cache-demo-out { width: 100%; margin: 0; padding: 13px 15px; border-radius: 12px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.07); color: #a9d8c0; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: .76rem; line-height: 1.7; white-space: pre-wrap; overflow-x: auto; }
+#cacheStats { margin: 14px 0 0; grid-template-columns: repeat(6, 1fr); }
+#cacheStats .stat-card { padding: 14px; }
+#cacheStats .stat-card strong { font-size: 1.45rem; }
+
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
 
 @media (max-width: 900px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  #cacheStats { grid-template-columns: repeat(3, 1fr); }
   .log-list li { grid-template-columns: 1fr; gap: 3px; }
   .admin-filters { width: 100%; flex-direction: column; }
   .admin-filters input { min-width: 0; }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rodando-utp-v2';
+const CACHE_NAME = 'rodando-utp-v3';
 const APP_SHELL = [
   './',
   './index.html',

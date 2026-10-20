@@ -30,6 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 import database
+import cache
 import ia_simulada
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +38,66 @@ COOKIE_SESION = 'rodando_sesion'
 LIMITE_CUERPO = 64 * 1024  # 64 KB
 
 RUTAS_PROTEGIDAS = ('/admin',)
+
+# ------------------------------------------------------------------
+# Configuración de la caché de la API
+# ------------------------------------------------------------------
+
+# Tiempo de vida de las respuestas cacheadas, en segundos.
+CACHE_TTL = int(os.environ.get('RODANDO_CACHE_TTL', '30'))
+CACHE_MAX_ENTRADAS = 500
+
+CACHE = cache.CacheAPI(ttl=CACHE_TTL, max_entradas=CACHE_MAX_ENTRADAS)
+
+# Nivel de acceso de cada endpoint. Se comprueba ANTES de consultar la caché,
+# para que un usuario sin sesión nunca reciba una respuesta cacheada.
+NIVEL_ACCESO = {
+    '/api/salud': 'libre',
+    '/api/registro': 'libre',
+    '/api/login': 'libre',
+    '/api/logout': 'libre',
+    '/api/sesion': 'libre',
+    '/api/zonas': 'libre',
+    '/api/rutas': 'libre',
+    '/api/ruta': 'libre',
+    '/api/mis-reservas': 'sesion',
+    '/api/ia/sugerir': 'sesion',
+    '/api/ia/mapa': 'sesion',
+    '/api/admin/usuarios': 'admin',
+    '/api/admin/bitacora': 'admin',
+    '/api/admin/cache': 'admin',
+}
+
+# Endpoints de lectura que se pueden cachear.
+# Los que dependen del usuario NO se incluyen: /api/sesion y /api/mis-reservas
+# nunca se cachean, se responden siempre con 'no-store'.
+CACHE_PERMITIDOS = {
+    '/api/salud',
+    '/api/zonas',
+    '/api/rutas',
+    '/api/ruta',
+    '/api/ia/sugerir',
+    '/api/ia/mapa',
+    '/api/admin/usuarios',
+    '/api/admin/bitacora',
+}
+
+# Endpoints cuya respuesta incluye datos del usuario que la pide.
+# Para estos, la clave de caché incluye su id: de lo contrario un
+# administrador vería el 'usuario_actual' de otro.
+CACHE_POR_USUARIO = {'/api/admin/usuarios'}
+
+# A qué grupo de invalidación pertenece cada endpoint cacheable.
+GRUPO_DE_CACHE = {
+    '/api/salud': cache.GRUPO_USUARIOS,
+    '/api/zonas': cache.GRUPO_RUTAS,
+    '/api/rutas': cache.GRUPO_RUTAS,
+    '/api/ruta': cache.GRUPO_RUTAS,
+    '/api/ia/sugerir': cache.GRUPO_IA,
+    '/api/ia/mapa': cache.GRUPO_IA,
+    '/api/admin/usuarios': cache.GRUPO_USUARIOS,
+    '/api/admin/bitacora': cache.GRUPO_USUARIOS,
+}
 
 # Extensiones y archivos que nunca deben salir por HTTP: codigo fuente del
 # backend, base de datos SQLite y metadatos de Git.
@@ -63,6 +124,12 @@ class Manejador(BaseHTTPRequestHandler):
     server_version = 'RodandoUTP/1.0'
     protocol_version = 'HTTP/1.1'
 
+    def __init__(self, *args, **kwargs):
+        # Modo captura: cuando no es None, `enviar_json` guarda la respuesta
+        # en lugar de escribirla, para que el despachador pueda cachearla.
+        self._captura = None
+        super().__init__(*args, **kwargs)
+
     # ---------------------------------------------------------------- utils
 
     def log_message(self, formato, *args):
@@ -83,17 +150,50 @@ class Manejador(BaseHTTPRequestHandler):
     def enviar_json(self, datos, estado=200, cabeceras=None):
         """
         Envía una respuesta JSON.
-        La API nunca se cachea: son datos de sesión y mutables (rutas, reservas,
-        usuarios). Sin 'no-store' el navegador podria aplicar heuristicas de
-        frescura y servir datos obsoletos, que es justo lo que rompe el login
-        y el panel de administracion.
+
+        Si el despachador está capturando (para meter la respuesta en la
+        caché), en lugar de escribirla se guarda en `self._captura`.
         """
         cuerpo = json.dumps(datos, ensure_ascii=False).encode('utf-8')
+        if self._captura is not None:
+            self._captura['cuerpo'] = cuerpo
+            self._captura['estado'] = estado
+            return
+        self._responder_json(cuerpo, estado, cabeceras=cabeceras)
+
+    def _responder_json(self, cuerpo, estado=200, cabeceras=None, etag=None,
+                        estado_cache=None):
+        """
+        Escribe la respuesta JSON al socket.
+
+        - `etag` y `estado_cache` solo se usan en las respuestas cacheables.
+        - Las respuestas cacheables usan 'private, no-cache': el navegador
+          puede guardarlas, pero SIEMPRE debe revalidarlas contra el servidor.
+          Gracias al ETag, esa revalidacion responde 304 sin cuerpo.
+        - El resto sigue con 'no-store' por ser datos de sesion o mutables.
+        """
         self.send_response(estado)
         cabeceras = dict(cabeceras or {})
-        cabeceras.setdefault('Cache-Control', 'no-store')
+        if etag:
+            cabeceras.setdefault('Cache-Control', 'private, no-cache')
+            cabeceras.setdefault('ETag', etag)
+        else:
+            cabeceras.setdefault('Cache-Control', 'no-store')
+        cabeceras.setdefault('Vary', 'Cookie')
+        if estado_cache:
+            cabeceras.setdefault('X-Cache', estado_cache)
         self._cabeceras('application/json; charset=utf-8', len(cuerpo), cabeceras)
         self.wfile.write(cuerpo)
+
+    def _responder_304(self, etag):
+        """Respuesta 304 Not Modified: el cliente ya tiene el contenido."""
+        self.send_response(304)
+        self.send_header('ETag', etag)
+        self.send_header('Cache-Control', 'private, no-cache')
+        self.send_header('Vary', 'Cookie')
+        self.send_header('X-Cache', 'HIT')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
 
     def enviar_error_json(self, mensaje, estado=400):
         self.enviar_json({'ok': False, 'error': mensaje}, estado)
@@ -246,6 +346,8 @@ class Manejador(BaseHTTPRequestHandler):
             ('DELETE', '/api/admin/usuarios',       self.api_admin_eliminar),
             ('POST',   '/api/admin/reset',          self.api_admin_reset),
             ('GET',    '/api/admin/bitacora',       self.api_admin_bitacora),
+            ('GET',    '/api/admin/cache',          self.api_admin_cache),
+            ('POST',   '/api/admin/cache',          self.api_admin_cache),
         ]
 
         consulta = parse_qs(urlparse(self.path).query)
@@ -261,9 +363,81 @@ class Manejador(BaseHTTPRequestHandler):
                     self.send_header('Content-Length', '0')
                     self.end_headers()
                     return
-                return manejador(consulta, id_objetivo)
+                return self._atender(metodo, patron, manejador, consulta, id_objetivo)
 
         self.enviar_error_json(f'Endpoint no encontrado: {ruta}', 404)
+
+    def _atender(self, metodo, patron, manejador, consulta, id_objetivo):
+        """
+        Aplica control de acceso y caché antes de ejecutar el handler.
+
+        El orden importa: primero se comprueba la sesión, después se busca
+        en la caché y solo al final se ejecuta la consulta a la base de datos.
+        """
+        nivel = NIVEL_ACCESO.get(patron, 'libre')
+
+        # 1) Control de acceso ANTES de tocar la caché.
+        if nivel == 'sesion' and self._exigir_sesion() is None:
+            return
+        if nivel == 'admin' and self._exigir_admin() is None:
+            return
+
+        # 2) Los endpoints de lectura se sirven desde la caché.
+        if metodo == 'GET' and patron in CACHE_PERMITIDOS:
+            return self._servir_desde_cache(patron, manejador, consulta, id_objetivo)
+
+        return manejador(consulta, id_objetivo)
+
+    def _servir_desde_cache(self, patron, manejador, consulta, id_objetivo):
+        """Cachea la respuesta de un endpoint GET y admite revalidación 304."""
+        parametros = '&'.join(f'{k}={v[0]}' for k, v in sorted(consulta.items()) if v)
+        grupo = GRUPO_DE_CACHE.get(patron, cache.GRUPO_RUTAS)
+
+        # Si la respuesta depende de quien pregunta, su id forma parte de la clave.
+        if patron in CACHE_POR_USUARIO:
+            usuario = self.usuario_actual()
+            if usuario:
+                parametros = f'{parametros}&usuario={usuario["id"]}'
+
+        clave = CACHE.clave(grupo, patron, parametros)
+
+        cuerpo, etag = CACHE.obtener(clave)
+
+        if cuerpo is not None:
+            # El cliente ya tiene esta respuesta: basta con confirmar.
+            if self.headers.get('If-None-Match') == etag:
+                CACHE.registrar_304()
+                self._responder_304(etag)
+                return
+            self._responder_json(cuerpo, 200, etag=etag, estado_cache='HIT')
+            return
+
+        # No hay entrada: se ejecuta el handler capturando su respuesta.
+        self._captura = {}
+        try:
+            manejador(consulta, id_objetivo)
+        finally:
+            captura = self._captura
+            self._captura = None
+
+        if not captura or captura.get('cuerpo') is None:
+            # El handler ya escribió la respuesta (por ejemplo, un error).
+            return
+
+        if captura['estado'] != 200:
+            self._responder_json(captura['cuerpo'], captura['estado'],
+                                 estado_cache='BYPASS')
+            return
+
+        etag = cache.calcular_etag(captura['cuerpo'])
+        CACHE.guardar(clave, captura['cuerpo'], etag)
+
+        if self.headers.get('If-None-Match') == etag:
+            CACHE.registrar_304()
+            self._responder_304(etag)
+            return
+
+        self._responder_json(captura['cuerpo'], 200, etag=etag, estado_cache='MISS')
 
     # --- endpoints publicos ------------------------------------------
 
@@ -298,6 +472,8 @@ class Manejador(BaseHTTPRequestHandler):
         uid = database.crear_usuario(nombre, correo, contrasena,
                                      rol='estudiante', zona=zona, matricula=matricula)
         database.registrar_bitacora(uid, uid, 'registro', f'Alta de usuario {correo}')
+        # El número de usuarios cambió: invalida el resumen de la API.
+        CACHE.invalidar(cache.GRUPO_USUARIOS)
 
         token = database.crear_sesion(uid)
         fila = database.usuario_por_id(uid)
@@ -432,6 +608,8 @@ class Manejador(BaseHTTPRequestHandler):
             nuevo_id = cur.lastrowid
         database.registrar_bitacora(usuario['id'], usuario['id'], 'publicacion',
                                     f'Ruta creada desde {origen}')
+        # Una ruta nueva cambia el listado, el mapa y las sugerencias.
+        CACHE.invalidar(cache.GRUPO_RUTAS, cache.GRUPO_IA)
         fila = database.ruta_por_id(nuevo_id)
         self.enviar_json({'ok': True, 'ruta': _ruta_publica(fila),
                           'mensaje': 'Ruta publicada.'})
@@ -451,6 +629,8 @@ class Manejador(BaseHTTPRequestHandler):
         if ok:
             database.registrar_bitacora(usuario['id'], usuario['id'], 'reserva',
                                         f'Reserva del lugar en ruta {ruta_id}')
+            # Un lugar menos cambia el contador de la ruta y las sugerencias.
+            CACHE.invalidar(cache.GRUPO_RUTAS, cache.GRUPO_IA)
         fila = database.ruta_por_id(ruta_id) if ok else None
         self.enviar_json({'ok': ok, 'mensaje': mensaje,
                           'ruta': _ruta_publica(fila) if fila else None},
@@ -588,6 +768,8 @@ class Manejador(BaseHTTPRequestHandler):
             None, admin['id'], 'eliminacion',
             f'{admin["nombre"]} elimino a {objetivo["nombre"]} ({objetivo["correo"]})',
         )
+        # El usuario arrastra sus rutas y reservas: se invalidan todos los grupos.
+        CACHE.limpiar()
         self.enviar_json({'ok': True,
                           'mensaje': f'Usuario {objetivo["nombre"]} eliminado.',
                           'id': objetivo_id})
@@ -603,6 +785,32 @@ class Manejador(BaseHTTPRequestHandler):
         filas = database.ultimas_acciones(limite)
         self.enviar_json({'ok': True, 'bitacora': [dict(f) for f in filas]})
 
+    def api_admin_cache(self, consulta, _):
+        """
+        Panel de la caché de la API.
+        GET  → estadísticas. POST con ?limpiar=1 → vacía la caché.
+        """
+        admin = self._exigir_admin()
+        if admin is None:
+            return
+
+        if (consulta.get('limpiar') or ['0'])[0] == '1':
+            CACHE.limpiar()
+            self.enviar_json({'ok': True, 'mensaje': 'Caché vaciada.',
+                              'estadisticas': CACHE.estadisticas()})
+            return
+
+        self.enviar_json({
+            'ok': True,
+            'ttl_segundos': CACHE_TTL,
+            'estadisticas': CACHE.estadisticas(),
+            'endpoints_cacheables': sorted(CACHE_PERMITIDOS),
+            'nota': ('Las respuestas se sirven desde la caché del servidor y '
+                    'llevan ETag: el navegador revalida y recibe 304 sin cuerpo. '
+                    'La caché se invalida al publicar rutas, reservar lugares o '
+                    'eliminar usuarios.'),
+        })
+
     def api_admin_reset(self, consulta, _):
         admin = self._exigir_admin()
         if admin is None:
@@ -612,6 +820,7 @@ class Manejador(BaseHTTPRequestHandler):
         # Tras el reset se cierra la sesion del administrador.
         database.borrar_sesion(self.token_sesion())
         database.reiniciar()
+        CACHE.limpiar()
         self.enviar_json({'ok': True, 'mensaje': 'Base de datos reiniciada.',
                           'mensaje_sesion': 'Vuelve a iniciar sesion.'},
                          cabeceras=self._cabecera_cookie('', max_age=0))
