@@ -504,6 +504,7 @@ app.post('/api/rutas', async (c) => {
   if (!usuario) {
     return c.json({ ok: false, error: 'Debes iniciar sesión para usar esta función.' }, 401);
   }
+  if (!['conductor', 'admin'].includes(usuario.rol)) return c.json({ ok: false, error: 'Solo los conductores pueden publicar rutas.' }, 403);
 
   const body = await c.req.json().catch(() => ({}));
   const origen: string = (body.origin || body.origen || '').trim();
@@ -549,6 +550,30 @@ app.post('/api/rutas', async (c) => {
     ruta: formatRuta(rutaRows[0]),
     mensaje: 'Ruta publicada.',
   }, 201);
+});
+
+app.get('/api/conductor/rutas', async (c) => {
+  const usuario = await requireAuth(c);
+  if (!usuario) return c.json({ ok: false, error: 'Debes iniciar sesión.' }, 401);
+  if (usuario.rol !== 'conductor' && !usuario.es_admin) return c.json({ ok: false, error: 'Acceso reservado a conductores.' }, 403);
+  const rows = await query<any>(`SELECT r.id,r.origen,r.punto_encuentro,r.salida,r.lugares,r.activa,
+    (SELECT count(*)::int FROM reservas rs WHERE rs.ruta_id=r.id AND rs.estado='confirmada') AS ocupados
+    FROM rutas r WHERE r.conductor_id=$1 ORDER BY r.id DESC`, [usuario.id]);
+  return c.json({ ok: true, rutas: rows });
+});
+
+app.put('/api/conductor/rutas', async (c) => {
+  const usuario = await requireAuth(c);
+  if (!usuario) return c.json({ ok: false, error: 'Debes iniciar sesión.' }, 401);
+  if (usuario.rol !== 'conductor' && !usuario.es_admin) return c.json({ ok: false, error: 'Acceso reservado a conductores.' }, 403);
+  const body = await c.req.json().catch(() => ({}));
+  const id = Number(body.id), lugares = Number(body.lugares);
+  if (!Number.isSafeInteger(id) || id < 1 || !Number.isInteger(lugares) || lugares < 1 || lugares > 8 || typeof body.activa !== 'boolean')
+    return c.json({ ok: false, error: 'Indica un identificador válido, de 1 a 8 asientos y disponibilidad.' }, 400);
+  const rows = await query<any>(`UPDATE rutas SET lugares=$1, activa=$2 WHERE id=$3 AND conductor_id=$4
+    AND $1 >= (SELECT count(*) FROM reservas WHERE ruta_id=$3 AND estado='confirmada') RETURNING id`, [lugares, body.activa, id, usuario.id]);
+  if (!rows.length) return c.json({ ok: false, error: 'Ruta no encontrada o capacidad menor que las reservas confirmadas.' }, 409);
+  return c.json({ ok: true, mensaje: 'Ruta actualizada.' });
 });
 
 // --------------------------------------------------------------------------
@@ -1119,36 +1144,7 @@ app.get('/api/admin/cache', async (c) => {
 });
 
 app.post('/api/admin/reset', async (c) => {
-  const admin = await requireAdmin(c);
-  if (!admin) {
-    return c.json({ ok: false, error: 'Acceso restringido a administradores.' }, 403);
-  }
-
-  const confirmar = c.req.query('confirmar');
-  if (confirmar !== '1') {
-    return c.json({ ok: false, error: 'Debes confirmar con ?confirmar=1.' }, 400);
-  }
-
-  // Cerrar sesiones del administrador
-  const token = getCookieToken(c);
-  if (token) {
-    await query('DELETE FROM sesiones WHERE token = $1', [token]);
-  }
-
-  await query('DELETE FROM sesiones');
-  await query('DELETE FROM reservas');
-  await query('DELETE FROM rutas');
-  await query('DELETE FROM usuarios WHERE rol != $1', [admin.id]);
-
-  await registrarBitacora(null, admin.id, 'reset', 'Base de datos reiniciada (usuarios de prueba eliminados, admin conservado)');
-
-  clearSessionCookie(c);
-
-  return c.json({
-    ok: true,
-    mensaje: 'Base de datos reiniciada.',
-    mensaje_sesion: 'Vuelve a iniciar sesión.',
-  });
+  return c.json({ ok: false, error: 'Reinicio desactivado para proteger los datos.' }, 403);
 });
 
 // --------------------------------------------------------------------------

@@ -26,6 +26,7 @@
       <div class="nav-links" id="navLinks">
         <a href="#rutas">Rutas</a>
         <a href="#mis-reservas" id="reservasLink" hidden>Mis reservas</a>
+        <a href="#panel-conductor" id="conductorLink" hidden>Mis rutas</a>
         <a href="#mapa-ia">Mapa IA</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#seguridad">Seguridad</a>
@@ -82,15 +83,16 @@
       <div class="routes-grid" id="reservasGrid" aria-live="polite">Cargando reservas…</div>
     </section>
 
+    <section class="search-panel shell" id="panel-conductor" hidden>
+      <div class="section-heading"><span class="eyebrow">Panel del conductor</span><h2>Mis rutas y disponibilidad</h2><p>Ajusta los asientos totales y si cada ruta está disponible. No puedes reducir la capacidad por debajo de las reservas confirmadas.</p></div>
+      <button class="btn btn-primary" id="conductorPublicar" type="button">Publicar nueva ruta</button>
+      <div id="conductorRutas" class="routes-grid" aria-live="polite"></div>
+    </section>
+
     <section class="search-panel shell" aria-labelledby="castorTitulo">
-      <div class="section-heading"><span class="eyebrow">Asistente simulado · sin IA externa</span><h2 id="castorTitulo">CastorUTP 🦫</h2><p>Te ayudaré a buscar un viaje. ¿Desde dónde sales y qué turno prefieres?</p></div>
-      <form id="castorForm" class="search-grid">
-        <label><span>¿Desde qué zona sales?</span><select id="castorZona" required><option value="">Selecciona</option><option>Cholula</option><option>Angelópolis</option><option>Amozoc</option><option>Centro</option><option>La Margarita</option></select></label>
-        <label><span>¿Qué turno prefieres?</span><select id="castorTurno"><option value="">Cualquiera</option><option value="morning">Matutino</option><option value="afternoon">Vespertino</option></select></label>
-        <label><span>¿Cuántos lugares necesitas?</span><select id="castorLugares"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
-        <button class="btn btn-primary" type="submit">Buscar opciones</button>
-      </form>
-      <p id="castorRespuesta" role="status"></p>
+      <div class="section-heading"><span class="eyebrow">Chat simulado · sin IA externa</span><h2 id="castorTitulo">CastorUTP 🦫</h2></div>
+      <div id="castorMensajes" aria-live="polite"><p><strong>CastorUTP:</strong> ¡Hola! ¿Desde qué zona sales? Escribe Cholula, Angelópolis, Amozoc, Centro o La Margarita.</p></div>
+      <form id="castorForm" class="search-grid"><label><span>Tu respuesta</span><input id="castorEntrada" maxlength="100" required autocomplete="off" placeholder="Escribe aquí"></label><button class="btn btn-primary" type="submit">Enviar</button><button class="btn btn-outline" id="castorReiniciar" type="button">Empezar de nuevo</button></form>
     </section>
 
     <section class="search-panel shell" id="rutas">

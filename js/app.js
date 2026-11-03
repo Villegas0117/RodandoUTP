@@ -102,14 +102,45 @@ function updateNetworkStatus() {
 }
 
 routeSearch.addEventListener('submit', (event) => { event.preventDefault(); filterRoutes(); });
+let castorPaso = 0;
+let castorZona = '', castorTurno = '';
+const castorMensajes = document.querySelector('#castorMensajes');
+function castorDecir(autor, texto) {
+  const p = document.createElement('p');
+  p.textContent = `${autor}: ${texto}`;
+  castorMensajes.appendChild(p);
+}
+document.querySelector('#castorReiniciar').addEventListener('click', () => {
+  castorPaso = 0;
+  castorMensajes.textContent = '';
+  castorDecir('CastorUTP', '¡Hola! ¿Desde qué zona sales? Escribe Cholula, Angelópolis, Amozoc, Centro o La Margarita.');
+});
 document.querySelector('#castorForm').addEventListener('submit', (event) => {
   event.preventDefault();
-  originFilter.value = document.querySelector('#castorZona').value;
-  timeFilter.value = document.querySelector('#castorTurno').value;
-  seatFilter.value = document.querySelector('#castorLugares').value;
+  const input = document.querySelector('#castorEntrada');
+  const valor = input.value.trim();
+  if (!valor) return;
+  castorDecir('Tú', valor);
+  input.value = '';
+  const texto = valor.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (castorPaso === 0) {
+    const zonas = ['Cholula', 'Angelópolis', 'Amozoc', 'Centro', 'La Margarita'];
+    const zona = zonas.find(z => z.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === texto);
+    if (!zona) return castorDecir('CastorUTP', 'No conozco esa zona. Prueba con Cholula, Angelópolis, Amozoc, Centro o La Margarita.');
+    castorZona = zona; castorPaso = 1;
+    return castorDecir('CastorUTP', '¿Prefieres turno matutino, vespertino o cualquiera?');
+  }
+  if (castorPaso === 1) {
+    if (!['matutino', 'vespertino', 'cualquiera'].includes(texto)) return castorDecir('CastorUTP', 'Escribe matutino, vespertino o cualquiera.');
+    castorTurno = texto === 'matutino' ? 'morning' : texto === 'vespertino' ? 'afternoon' : '';
+    castorPaso = 2;
+    return castorDecir('CastorUTP', '¿Cuántos lugares necesitas? Escribe 1, 2 o 3.');
+  }
+  if (!['1', '2', '3'].includes(texto)) return castorDecir('CastorUTP', 'Escribe 1, 2 o 3.');
+  originFilter.value = castorZona; timeFilter.value = castorTurno; seatFilter.value = texto;
   filterRoutes();
-  document.querySelector('#castorRespuesta').textContent = 'Estas son las rutas disponibles que coinciden con tus respuestas. Selecciona una para reservar.';
-  document.querySelector('#rutas').scrollIntoView({ behavior: 'smooth' });
+  castorDecir('CastorUTP', 'Ya filtré las rutas disponibles abajo. Puedes seleccionar una para reservar. Para otra búsqueda pulsa Empezar de nuevo.');
+  castorPaso = 0;
 });
 clearFilters.addEventListener('click', () => {
   originFilter.value = '';
@@ -180,6 +211,7 @@ publishForm.addEventListener('submit', async (event) => {
 
   routes.unshift(nuevaRuta);
   renderRoutes(routes);
+  if (!document.querySelector('#panel-conductor').hidden) await cargarRutasConductor();
   publishForm.reset();
   publishModal.close();
 });
@@ -228,12 +260,37 @@ async function iniciarSesionUI() {
     pintarSesion(sesion.usuario);
     document.querySelector('#mis-reservas').hidden = !sesion.autenticado;
     document.querySelector('#reservasLink').hidden = !sesion.autenticado;
+    const conductor = sesion.autenticado && ['conductor', 'admin'].includes(sesion.usuario.rol);
+    document.querySelector('#panel-conductor').hidden = !conductor;
+    document.querySelector('#conductorLink').hidden = !conductor;
+    if (conductor) await cargarRutasConductor();
     if (sesion.autenticado) await cargarReservas();
     if (sesion.autenticado && typeof iniciarMapa === 'function') {
       await iniciarMapa();
     }
   } catch { /* sin servidor la app sigue con el JSON estatico */ }
 }
+
+document.querySelector('#conductorPublicar').addEventListener('click', () => publishModal.showModal());
+async function cargarRutasConductor() {
+  const grid = document.querySelector('#conductorRutas');
+  grid.textContent = 'Cargando rutas…';
+  try {
+    const data = await api('/conductor/rutas');
+    grid.innerHTML = data.rutas.length ? data.rutas.map(r => `<form class="route-card" data-conductor-ruta="${escapeHTML(r.id)}"><h3>${escapeHTML(r.origen)} → UTP</h3><p>${escapeHTML(r.punto_encuentro)} · ${escapeHTML(r.salida)}</p><p>Reservas confirmadas: ${escapeHTML(r.ocupados)}</p><label>Asientos totales <input name="lugares" type="number" min="1" max="8" value="${escapeHTML(r.lugares)}" required></label><label> Disponible <input name="activa" type="checkbox" ${r.activa ? 'checked' : ''}></label><button class="btn btn-primary" type="submit">Guardar cambios</button></form>`).join('') : '<p>Aún no has publicado rutas.</p>';
+  } catch (error) { grid.textContent = error.message || 'No se pudieron cargar las rutas.'; }
+}
+document.querySelector('#conductorRutas').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const button = form.querySelector('button');
+  button.disabled = true;
+  try {
+    const data = await api('/conductor/rutas', { method: 'PUT', cuerpo: { id: Number(form.dataset.conductorRuta), lugares: Number(form.elements.lugares.value), activa: form.elements.activa.checked } });
+    showToast(data.mensaje);
+    await Promise.all([cargarRutasConductor(), loadRoutes()]);
+  } catch (error) { showToast(error.message); button.disabled = false; }
+});
 
 async function cargarReservas() {
   const grid = document.querySelector('#reservasGrid');
