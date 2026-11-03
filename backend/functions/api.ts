@@ -235,6 +235,26 @@ app.get('/api/health', async (c) => {
   );
 });
 
+// Alias para compatibilidad con frontend
+app.get('/api/salud', async (c) => {
+  let database = 'disconnected';
+  try {
+    const ok = await checkConnection();
+    database = ok ? 'connected' : 'disconnected';
+  } catch {
+    database = 'disconnected';
+  }
+
+  return c.json(
+    {
+      status: database === 'connected' ? 'ok' : 'error',
+      service: 'RodandoUTP API',
+      database,
+    },
+    database === 'connected' ? 200 : 503
+  );
+});
+
 // --------------------------------------------------------------------------
 // Registro
 // --------------------------------------------------------------------------
@@ -557,6 +577,14 @@ app.post('/api/reservas', async (c) => {
     return c.json({ ok: false, error: 'No puedes reservar un lugar en tu propia ruta.' }, 409);
   }
 
+  const existente = await query<any>(
+    "SELECT estado FROM reservas WHERE ruta_id = $1 AND pasajero_id = $2",
+    [rutaId, usuario.id]
+  );
+  if (existente[0]?.estado === 'confirmada') {
+    return c.json({ ok: true, mensaje: 'Ya tienes una reserva confirmada en esta ruta.' });
+  }
+
   const ocupadas = await query<any>(
     "SELECT COUNT(*) AS n FROM reservas WHERE ruta_id = $1 AND estado = 'confirmada'",
     [rutaId]
@@ -614,7 +642,7 @@ app.get('/api/mis-reservas', async (c) => {
   }
 
   const rows = await query<any>(
-    `SELECT rs.id, rs.estado, rs.creado_en, r.origen, r.punto_encuentro, r.salida,
+    `SELECT rs.id, rs.ruta_id, rs.estado, rs.creado_en, r.origen, r.punto_encuentro, r.salida,
             r.aportacion, u.nombre AS conductor
      FROM reservas rs
      JOIN rutas r ON r.id = rs.ruta_id
@@ -628,6 +656,7 @@ app.get('/api/mis-reservas', async (c) => {
     ok: true,
     reservas: rows.map((r) => ({
       id: r.id,
+      ruta_id: r.ruta_id,
       estado: r.estado,
       creado_en: r.creado_en,
       origen: r.origen,

@@ -305,7 +305,7 @@ function pintarSugerencias(lista, zona) {
 
         <div class="sug-foot">
           <div class="chips">${chips}</div>
-          <button class="btn btn-primary reserve-btn" data-ai-reserve="${s.ruta_id}">Reservar lugar</button>
+          <button class="btn btn-primary reserve-btn" data-ai-reserve="${s.ruta_id}" ${rutasReservadas.has(String(s.ruta_id)) ? 'disabled' : ''}>${rutasReservadas.has(String(s.ruta_id)) ? 'Ya reservado' : 'Reservar lugar'}</button>
         </div>
       </article>`;
   }).join('');
@@ -317,8 +317,10 @@ function pintarSugerencias(lista, zona) {
       boton.textContent = 'Reservando…';
       try {
         const respuesta = await api('/reservas', { method: 'POST', cuerpo: { id: Number(idRuta) } });
+        rutasReservadas.add(String(idRuta));
         notificar(respuesta.mensaje || 'Lugar reservado.');
-        pedirSugerencias();
+        await Promise.all([cargarReservas(), loadRoutes()]);
+        await pedirSugerencias();
       } catch (error) {
         notificar(error.message);
         boton.disabled = false;

@@ -11,6 +11,7 @@ const toast = document.querySelector('#toast');
 const networkBadge = document.querySelector('#networkBadge');
 const installBtn = document.querySelector('#installBtn');
 let routes = [];
+let rutasReservadas = new Set();
 let deferredInstallPrompt = null;
 
 const escapeHTML = (value) => String(value)
@@ -54,7 +55,7 @@ function routeCard(route) {
       </div>
       <div class="route-bottom">
         <div class="price"><strong>$${escapeHTML(route.contribution)}</strong><small>aportación / viaje</small></div>
-        <button class="btn btn-primary reserve-btn" data-reserve="${escapeHTML(route.id)}">Reservar lugar</button>
+        <button class="btn btn-primary reserve-btn" data-reserve="${escapeHTML(route.id)}" ${rutasReservadas.has(String(route.id)) || Number(route.seats) <= 0 ? 'disabled' : ''}>${rutasReservadas.has(String(route.id)) ? 'Ya reservado' : Number(route.seats) <= 0 ? 'Sin lugares' : 'Reservar lugar'}</button>
       </div>
     </article>`;
 }
@@ -119,6 +120,8 @@ document.addEventListener('click', async (event) => {
   if (route.seats <= 0) return showToast('Esta ruta ya no tiene lugares disponibles.');
 
   // La reserva solo se confirma cuando el servidor la acepta.
+  reserveButton.disabled = true;
+  reserveButton.textContent = 'Reservando…';
   try {
     const data = await api('/reservas', {
       method: 'POST',
@@ -126,11 +129,14 @@ document.addEventListener('click', async (event) => {
     });
 
     if (!data.ok) return showToast(data.error || 'No fue posible reservar.');
+    rutasReservadas.add(String(route.id));
     if (data.ruta) Object.assign(route, data.ruta);
     await Promise.all([loadRoutes(), cargarReservas()]);
     filterRoutes();
     return showToast(data.mensaje || `Lugar reservado con ${route.driver}.`);
   } catch (error) {
+    reserveButton.disabled = false;
+    reserveButton.textContent = 'Reservar lugar';
     if (error.estado === 401) return showToast('Inicia sesión para reservar.');
     showToast(error.message || 'No se pudo reservar. Comprueba tu conexión.');
   }
@@ -225,6 +231,8 @@ async function cargarReservas() {
   grid.textContent = 'Cargando reservas…';
   try {
     const data = await api('/mis-reservas');
+    rutasReservadas = new Set(data.reservas.filter(r => r.estado === 'confirmada').map(r => String(r.ruta_id)));
+    filterRoutes();
     grid.innerHTML = data.reservas.length ? data.reservas.map(r =>
       `<article class="route-card"><h3>${escapeHTML(r.origen)} → UTP</h3><p>Conductor: ${escapeHTML(r.conductor)}</p><p>Encuentro: ${escapeHTML(r.punto_encuentro)}</p><p>Salida: ${escapeHTML(r.salida)} · $${escapeHTML(r.aportacion)}</p><p>Estado: ${escapeHTML(r.estado)}</p></article>`
     ).join('') : '<div class="empty-state">Aún no tienes reservas.</div>';
