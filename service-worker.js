@@ -46,7 +46,9 @@ self.addEventListener('fetch', (event) => {
 
   // La API SIEMPRE va a la red: cachear respuestas de /api/ devolveria
   // datos de sesion obsoletos y romperia el login y el panel de admin.
-  if (new URL(event.request.url).pathname.startsWith('/api/')) return;
+  // En GitHub Pages el path es /RodandoUTP/api/..., no /api/..., por eso
+  // se comprueba si la URL contiene /api/ en cualquier parte.
+  if (event.request.url.includes('/api/')) return;
 
   // El panel de administrador nunca se sirve desde la cache.
   if (new URL(event.request.url).pathname.startsWith('/admin')) return;
