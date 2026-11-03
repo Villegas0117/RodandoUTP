@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rodando-utp-v5';
+const CACHE_NAME = 'rodando-utp-v6';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,12 +6,12 @@ const APP_SHELL = [
   './css/styles.css',
   './css/mapa-ia.css',
   './css/auth.css',
-  './js/app.js',
-  './js/sesion.js',
-  './js/auth.js',
-  './js/mapa-ia.js',
-  './vendor/leaflet/leaflet.js',
-  './vendor/leaflet/leaflet.css',
+  './js/app.js?v=2',
+  './js/sesion.js?v=2',
+  './js/auth.js?v=2',
+  './js/mapa-ia.js?v=2',
+  './vendor/leaflet/leaflet.js?v=2',
+  './vendor/leaflet/leaflet.css?v=2',
   './vendor/leaflet/images/marker-icon.png',
   './vendor/leaflet/images/marker-icon-2x.png',
   './vendor/leaflet/images/marker-shadow.png',
