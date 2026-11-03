@@ -5,7 +5,7 @@
 // URL de la API de Neon Functions. En producción (GitHub Pages) se define
 // window.RODANDO_API_URL antes de cargar este script. En desarrollo local
 // se usa la ruta relativa '/api' (mismo origen).
-const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
+const API = (window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech') + '/api';
 
 // Token de sesion almacenado en memoria (no en cookies, por CORS).
 let sessionToken = null;
