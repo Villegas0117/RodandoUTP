@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rodando-utp-v7';
+const CACHE_NAME = 'rodando-utp-v8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key.startsWith('rodando-utp-') && key !== CACHE_NAME).map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
   );
@@ -43,6 +43,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   // La API SIEMPRE va a la red: cachear respuestas de /api/ devolveria
   // datos de sesion obsoletos y romperia el login y el panel de admin.

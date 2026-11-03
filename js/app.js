@@ -22,15 +22,6 @@ const escapeHTML = (value) => String(value)
 
 const initials = (name) => name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase();
 
-function getLocalRoutes() {
-  try { return JSON.parse(localStorage.getItem('rodandoCustomRoutes') || '[]'); }
-  catch { return []; }
-}
-
-function saveLocalRoutes(customRoutes) {
-  localStorage.setItem('rodandoCustomRoutes', JSON.stringify(customRoutes));
-}
-
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -48,7 +39,7 @@ function routeCard(route) {
       <div class="route-top">
         <div class="driver">
           <span class="avatar">${escapeHTML(initials(route.driver))}</span>
-          <div><strong>${escapeHTML(route.driver)}</strong><small>${route.verified ? '✓ Estudiante verificado' : 'Ruta local'}</small></div>
+          <div><strong>${escapeHTML(route.driver)}</strong><small>${route.verified ? '✓ Estudiante verificado' : 'Estudiante'}</small></div>
         </div>
         <span class="rating">★ ${Number(route.rating || 5).toFixed(1)}</span>
       </div>
@@ -127,8 +118,7 @@ document.addEventListener('click', async (event) => {
   if (!route) return;
   if (route.seats <= 0) return showToast('Esta ruta ya no tiene lugares disponibles.');
 
-  // Con sesion iniciada la reserva se guarda en SQLite; sin servidor se mantiene
-  // el comportamiento local para que la demo siga siendo navegable.
+  // La reserva solo se confirma cuando el servidor la acepta.
   try {
     const data = await api('/reservas', {
       method: 'POST',
@@ -173,29 +163,7 @@ publishForm.addEventListener('submit', async (event) => {
     return;
   }
 
-  const localRoute = nuevaRuta || {
-    id: Date.now(),
-    driver: datos.driver,
-    origin: datos.origin,
-    meetingPoint: datos.meetingPoint,
-    destination: 'UTP',
-    departure: datos.departure,
-    arrival: 'Por confirmar',
-    seats: datos.seats,
-    contribution: datos.contribution,
-    rating: 5,
-    verified: false,
-    days: ['Nueva']
-  };
-
-  if (!nuevaRuta) {
-    const customRoutes = getLocalRoutes();
-    customRoutes.unshift(localRoute);
-    saveLocalRoutes(customRoutes);
-    showToast('Ruta publicada correctamente en este dispositivo.');
-  }
-
-  routes.unshift(localRoute);
+  routes.unshift(nuevaRuta);
   renderRoutes(routes);
   publishForm.reset();
   publishModal.close();
@@ -214,7 +182,7 @@ navLinks.addEventListener('click', (event) => {
   }
 });
 
-window.addEventListener('online', updateNetworkStatus);
+window.addEventListener('online', () => { updateNetworkStatus(); loadRoutes(); if (getSessionToken()) cargarReservas(); });
 window.addEventListener('offline', updateNetworkStatus);
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
