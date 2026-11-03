@@ -86,11 +86,12 @@ function filterRoutes() {
 }
 
 async function loadRoutes() {
-  // 1) Se intenta el backend (SQLite).
+  const API = window.RODANDO_API_URL || '/api';
+  // 1) Se intenta el backend (PostgreSQL via Neon Functions).
   // 2) Si el servidor no responde se cae al JSON estatico para que la PWA
   //    siga funcionando igual que antes.
   try {
-    const respuesta = await fetch('/api/rutas', { credentials: 'same-origin' });
+    const respuesta = await fetch(`${API}/rutas`, { credentials: 'include' });
     if (respuesta.ok) {
       const data = await respuesta.json();
       // La API usa 'rutas' y el JSON estatico usa 'routes'.
@@ -140,10 +141,11 @@ document.addEventListener('click', async (event) => {
 
   // Con sesion iniciada la reserva se guarda en SQLite; sin servidor se mantiene
   // el comportamiento local para que la demo siga siendo navegable.
+  const API = window.RODANDO_API_URL || '/api';
   try {
-    const respuesta = await fetch('/api/reservas', {
+    const respuesta = await fetch(`${API}/reservas`, {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: route.id })
     });
@@ -178,11 +180,12 @@ publishForm.addEventListener('submit', async (event) => {
 
   let nuevaRuta = null;
 
-  // Se intenta guardar en SQLite (queda visible para toda la comunidad).
+  const API = window.RODANDO_API_URL || '/api';
+  // Se intenta guardar en PostgreSQL (queda visible para toda la comunidad).
   try {
-    const respuesta = await fetch('/api/rutas', {
+    const respuesta = await fetch(`${API}/rutas`, {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos)
     });

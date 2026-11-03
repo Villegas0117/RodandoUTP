@@ -10,3 +10,14 @@ __pycache__/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Neon
+.env
+.env.local
+.env.production.local
+.env.*.local
+.neon/
+
+# Backend Node
+backend/node_modules/
+backend/dist/

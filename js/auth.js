@@ -46,13 +46,14 @@ tabRegister.addEventListener('click', () => cambiarPestana('registro'));
 /** Comprueba que el backend este levantado para avisar al usuario. */
 async function revisarBackend() {
   try {
-    const respuesta = await fetch('/api/salud');
+    const API = window.RODANDO_API_URL || '/api';
+    const respuesta = await fetch(`${API}/salud`, { credentials: 'include' });
     if (!respuesta.ok) throw new Error();
-    backendNote.textContent = 'Servidor conectado · base de datos SQLite activa';
+    backendNote.textContent = 'Servidor conectado · base de datos PostgreSQL activa';
     backendNote.classList.add('ok');
     backendNote.classList.remove('error');
   } catch {
-    backendNote.textContent = 'Sin servidor: ejecuta "python3 server.py" para usar el acceso';
+    backendNote.textContent = 'Sin servidor: la app funciona con datos locales limitados.';
     backendNote.classList.add('error');
   }
 }

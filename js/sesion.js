@@ -2,12 +2,15 @@
    Rodando UTP - Gestion de sesion (cliente)
    ============================================================= */
 
-const API = '/api';
+// URL de la API de Neon Functions. En producción (GitHub Pages) se define
+// window.RODANDO_API_URL antes de cargar este script. En desarrollo local
+// se usa la ruta relativa '/api' (mismo origen).
+const API = window.RODANDO_API_URL || '/api';
 
 /** Consulta la sesion actual en el servidor. */
 async function obtenerSesion() {
   try {
-    const respuesta = await fetch(`${API}/sesion`, { credentials: 'same-origin' });
+    const respuesta = await fetch(`${API}/sesion`, { credentials: 'include' });
     if (!respuesta.ok) return { autenticado: false, usuario: null };
     const datos = await respuesta.json();
     return datos;
@@ -20,7 +23,7 @@ async function obtenerSesion() {
 /** Envoltura de fetch con mensajes de error legibles. */
 async function api(ruta, opciones = {}) {
   const respuesta = await fetch(`${API}${ruta}`, {
-    credentials: 'same-origin',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...(opciones.headers || {}) },
     ...opciones,
     body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
