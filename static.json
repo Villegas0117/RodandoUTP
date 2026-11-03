@@ -1,0 +1,28 @@
+{
+  "clean_urls": true,
+  "trailing_slash": false,
+  "headers": {
+    "/*": {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0"
+    },
+    "/js/*": {
+      "Cache-Control": "no-cache, no-store, must-revalidate"
+    },
+    "/css/*": {
+      "Cache-Control": "no-cache, no-store, must-revalidate"
+    },
+    "/service-worker.js": {
+      "Cache-Control": "no-cache, no-store, must-revalidate"
+    },
+    "/manifest.webmanifest": {
+      "Cache-Control": "no-cache, no-store, must-revalidate"
+    }
+  },
+  "redirects": {
+    "/": "/index.html",
+    "/login": "/login.html",
+    "/admin": "/admin.html"
+  }
+}
