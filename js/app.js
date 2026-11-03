@@ -93,21 +93,13 @@ async function loadRoutes() {
     const data = await api('/rutas');
     // La API usa 'rutas' y el JSON estatico usa 'routes'.
     const lista = data.rutas || data.routes || [];
-    routes = [...getLocalRoutes(), ...lista];
+    routes = lista;
     renderRoutes(routes);
     return;
-  } catch { /* servidor no disponible: se usa el respaldo */ }
-
-  try {
-    const response = await fetch('data/rutas.json');
-    if (!response.ok) throw new Error('No se pudo cargar el JSON');
-    const data = await response.json();
-    routes = [...getLocalRoutes(), ...(data.routes || data.rutas || [])];
-    renderRoutes(routes);
-  } catch (error) {
-    routes = getLocalRoutes();
-    renderRoutes(routes);
-    if (!routes.length) resultText.textContent = 'Sin conexión: abre la app una vez en línea para guardar las rutas.';
+  } catch {
+    routes = [];
+    routesGrid.innerHTML = '<div class="empty-state">No se pueden consultar las rutas. Comprueba tu conexión e inténtalo de nuevo.</div>';
+    resultText.textContent = 'Rutas no disponibles';
   }
 }
 
@@ -143,19 +135,15 @@ document.addEventListener('click', async (event) => {
       cuerpo: { id: route.id },
     });
 
-    if (data.status === 401) {
-      window.location.href = 'login.html';
-      return;
-    }
     if (!data.ok) return showToast(data.error || 'No fue posible reservar.');
     if (data.ruta) Object.assign(route, data.ruta);
+    await Promise.all([loadRoutes(), cargarReservas()]);
     filterRoutes();
     return showToast(data.mensaje || `Lugar reservado con ${route.driver}.`);
-  } catch { /* servidor no disponible: reserva local */ }
-
-  route.seats -= 1;
-  filterRoutes();
-  showToast(`Lugar reservado con ${route.driver}. Reserva registrada para esta sesión.`);
+  } catch (error) {
+    if (error.estado === 401) return showToast('Inicia sesión para reservar.');
+    showToast(error.message || 'No se pudo reservar. Comprueba tu conexión.');
+  }
 });
 
 publishForm.addEventListener('submit', async (event) => {
@@ -180,7 +168,10 @@ publishForm.addEventListener('submit', async (event) => {
     });
     nuevaRuta = data.ruta;
     showToast('Ruta publicada y guardada en la base de datos.');
-  } catch { /* servidor no disponible: se publica solo en local */ }
+  } catch (error) {
+    showToast(error.estado === 401 ? 'Inicia sesión para publicar una ruta.' : (error.message || 'No se pudo publicar la ruta.'));
+    return;
+  }
 
   const localRoute = nuevaRuta || {
     id: Date.now(),
@@ -252,11 +243,28 @@ async function iniciarSesionUI() {
   try {
     const sesion = await obtenerSesion();
     pintarSesion(sesion.usuario);
+    document.querySelector('#mis-reservas').hidden = !sesion.autenticado;
+    document.querySelector('#reservasLink').hidden = !sesion.autenticado;
+    if (sesion.autenticado) await cargarReservas();
     if (sesion.autenticado && typeof iniciarMapa === 'function') {
       await iniciarMapa();
     }
   } catch { /* sin servidor la app sigue con el JSON estatico */ }
 }
+
+async function cargarReservas() {
+  const grid = document.querySelector('#reservasGrid');
+  grid.textContent = 'Cargando reservas…';
+  try {
+    const data = await api('/mis-reservas');
+    grid.innerHTML = data.reservas.length ? data.reservas.map(r =>
+      `<article class="route-card"><h3>${escapeHTML(r.origen)} → UTP</h3><p>Conductor: ${escapeHTML(r.conductor)}</p><p>Encuentro: ${escapeHTML(r.punto_encuentro)}</p><p>Salida: ${escapeHTML(r.salida)} · $${escapeHTML(r.aportacion)}</p><p>Estado: ${escapeHTML(r.estado)}</p></article>`
+    ).join('') : '<div class="empty-state">Aún no tienes reservas.</div>';
+  } catch (error) {
+    grid.textContent = error.message || 'No se pudieron cargar las reservas. Comprueba tu conexión.';
+  }
+}
+document.querySelector('#refreshReservas').addEventListener('click', cargarReservas);
 
 updateNetworkStatus();
 loadRoutes();

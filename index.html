@@ -25,6 +25,7 @@
       <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Abrir menú">☰</button>
       <div class="nav-links" id="navLinks">
         <a href="#rutas">Rutas</a>
+        <a href="#mis-reservas" id="reservasLink" hidden>Mis reservas</a>
         <a href="#mapa-ia">Mapa IA</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#seguridad">Seguridad</a>
@@ -73,6 +74,12 @@
           <div><small>Perfil</small><strong>Estudiante verificado</strong></div>
         </div>
       </div>
+    </section>
+
+    <section class="search-panel shell" id="mis-reservas" hidden>
+      <div class="section-heading compact-heading"><div><span class="eyebrow">Tus viajes</span><h2>Mis reservas</h2></div>
+        <button class="btn btn-small btn-outline" id="refreshReservas" type="button">Actualizar</button></div>
+      <div class="routes-grid" id="reservasGrid" aria-live="polite">Cargando reservas…</div>
     </section>
 
     <section class="search-panel shell" id="rutas">

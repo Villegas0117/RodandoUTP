@@ -173,7 +173,6 @@ async function cargarCache() {
   } catch { /* el panel de caché es informativo */ }
 }
 
-const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
 
 /** Cabeceras con el token de sesion para peticiones autenticadas. */
 function authFetchHeaders(extra = {}) {

@@ -8,11 +8,13 @@
 const API = (window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech') + '/api';
 
 // Token de sesion almacenado en memoria (no en cookies, por CORS).
-let sessionToken = null;
+let sessionToken = sessionStorage.getItem('rodando_session_token');
 
 /** Guarda el token de sesion. */
 function setSessionToken(token) {
   sessionToken = token;
+  if (token) sessionStorage.setItem('rodando_session_token', token);
+  else sessionStorage.removeItem('rodando_session_token');
 }
 
 /** Obtiene el token de sesion actual. */
@@ -37,6 +39,7 @@ async function obtenerSesion() {
     });
     if (!respuesta.ok) return { autenticado: false, usuario: null };
     const datos = await respuesta.json();
+    if (!datos.autenticado) setSessionToken(null);
     return datos;
   } catch {
     // Sin servidor: la app sigue funcionando con el JSON estatico.
@@ -120,6 +123,6 @@ async function cerrarSesion() {
   try {
     await api('/logout', { method: 'POST' });
   } catch { /* se ignora */ }
-  sessionToken = null;
+  setSessionToken(null);
   window.location.href = 'index.html';
 }
