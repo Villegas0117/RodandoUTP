@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rodando-utp-v8';
+const CACHE_NAME = 'rodando-utp-v9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,12 +11,11 @@ const APP_SHELL = [
   './js/auth.js?v=2',
   './js/mapa-ia.js?v=2',
   './vendor/leaflet/leaflet.js?v=2',
-  './vendor/leaflet/leaflet.css?v=2',
+  './vendor/leaflet/leaflet.css',
   './vendor/leaflet/images/marker-icon.png',
   './vendor/leaflet/images/marker-icon-2x.png',
   './vendor/leaflet/images/marker-shadow.png',
   './manifest.webmanifest',
-  './data/rutas.json',
   './img/hero-carpool.svg',
   './img/utp-route.svg',
   './img/icon-192.png',
@@ -59,18 +58,11 @@ self.addEventListener('fetch', (event) => {
   // Leaflet muestra el fondo y las zonas siguen visibles.
   if (event.request.url.includes('tile.openstreetmap.org')) return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const networkFetch = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith(self.location.origin)) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        });
+  // Navegaciones primero en red para recibir cambios; app shell disponible offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(async () => (await caches.match(event.request)) || (await caches.match('./index.html'))));
+    return;
+  }
 
-      return cachedResponse || networkFetch.catch(() => caches.match('./index.html'));
-    })
-  );
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });

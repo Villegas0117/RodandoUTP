@@ -3,7 +3,7 @@
   "short_name": "Rodando UTP",
   "description": "PWA para conectar estudiantes de la Universidad Tecnológica de Puebla que desean compartir trayectos y gastos de gasolina.",
   "lang": "es-MX",
-  "id": "/rodando-utp/",
+  "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
