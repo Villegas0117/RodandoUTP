@@ -93,7 +93,9 @@ app.use('*', cors({
     const allowed = config.corsOrigin;
     if (!origin) return null;
     if (allowed === '*') return origin;
-    if (allowed === origin) return origin;
+    // Permitir tanto GitHub Pages como Render
+    const allowedOrigins = allowed.split(',').map(o => o.trim());
+    if (allowedOrigins.includes(origin)) return origin;
     return null;
   },
   credentials: true,
