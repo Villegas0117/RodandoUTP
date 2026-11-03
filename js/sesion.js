@@ -7,10 +7,34 @@
 // se usa la ruta relativa '/api' (mismo origen).
 const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
 
+// Token de sesion almacenado en memoria (no en cookies, por CORS).
+let sessionToken = null;
+
+/** Guarda el token de sesion. */
+function setSessionToken(token) {
+  sessionToken = token;
+}
+
+/** Obtiene el token de sesion actual. */
+function getSessionToken() {
+  return sessionToken;
+}
+
+/** Construye las cabeceras con el token de sesion si existe. */
+function authHeaders(extra = {}) {
+  const headers = { 'Content-Type': 'application/json', ...extra };
+  if (sessionToken) {
+    headers['Authorization'] = 'Bearer ' + sessionToken;
+  }
+  return headers;
+}
+
 /** Consulta la sesion actual en el servidor. */
 async function obtenerSesion() {
   try {
-    const respuesta = await fetch(`${API}/sesion`, { credentials: 'include' });
+    const respuesta = await fetch(`${API}/sesion`, {
+      headers: authHeaders(),
+    });
     if (!respuesta.ok) return { autenticado: false, usuario: null };
     const datos = await respuesta.json();
     return datos;
@@ -23,8 +47,7 @@ async function obtenerSesion() {
 /** Envoltura de fetch con mensajes de error legibles. */
 async function api(ruta, opciones = {}) {
   const respuesta = await fetch(`${API}${ruta}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(opciones.headers || {}) },
+    headers: authHeaders(opciones.headers || {}),
     ...opciones,
     body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
   });
@@ -96,6 +119,7 @@ function notificar(mensaje) {
 async function cerrarSesion() {
   try {
     await api('/logout', { method: 'POST' });
-  } catch { /* se ignora: la cookie se limpia igual */ }
+  } catch { /* se ignora */ }
+  sessionToken = null;
   window.location.href = 'index.html';
 }

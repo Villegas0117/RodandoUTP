@@ -6,7 +6,7 @@ export default defineConfig({
       name: 'api',
       source: './functions/api.ts',
       env: {
-        CORS_ORIGIN: 'https://villegas0117.github.io, https://rodando-utp.onrender.com',
+        CORS_ORIGIN: '*',
       },
     },
   },

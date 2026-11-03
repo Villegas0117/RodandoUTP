@@ -86,20 +86,16 @@ function filterRoutes() {
 }
 
 async function loadRoutes() {
-  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   // 1) Se intenta el backend (PostgreSQL via Neon Functions).
   // 2) Si el servidor no responde se cae al JSON estatico para que la PWA
   //    siga funcionando igual que antes.
   try {
-    const respuesta = await fetch(`${API}/rutas`, { credentials: 'include' });
-    if (respuesta.ok) {
-      const data = await respuesta.json();
-      // La API usa 'rutas' y el JSON estatico usa 'routes'.
-      const lista = data.rutas || data.routes || [];
-      routes = [...getLocalRoutes(), ...lista];
-      renderRoutes(routes);
-      return;
-    }
+    const data = await api('/rutas');
+    // La API usa 'rutas' y el JSON estatico usa 'routes'.
+    const lista = data.rutas || data.routes || [];
+    routes = [...getLocalRoutes(), ...lista];
+    renderRoutes(routes);
+    return;
   } catch { /* servidor no disponible: se usa el respaldo */ }
 
   try {
@@ -141,17 +137,13 @@ document.addEventListener('click', async (event) => {
 
   // Con sesion iniciada la reserva se guarda en SQLite; sin servidor se mantiene
   // el comportamiento local para que la demo siga siendo navegable.
-  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   try {
-    const respuesta = await fetch(`${API}/reservas`, {
+    const data = await api('/reservas', {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: route.id })
+      cuerpo: { id: route.id },
     });
-    const data = await respuesta.json();
 
-    if (respuesta.status === 401) {
+    if (data.status === 401) {
       window.location.href = 'login.html';
       return;
     }
@@ -180,22 +172,12 @@ publishForm.addEventListener('submit', async (event) => {
 
   let nuevaRuta = null;
 
-  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   // Se intenta guardar en PostgreSQL (queda visible para toda la comunidad).
   try {
-    const respuesta = await fetch(`${API}/rutas`, {
+    const data = await api('/rutas', {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(datos)
+      cuerpo: datos,
     });
-    const data = await respuesta.json();
-
-    if (respuesta.status === 401) {
-      window.location.href = 'login.html';
-      return;
-    }
-    if (!data.ok) return showToast(data.error || 'No fue posible publicar la ruta.');
     nuevaRuta = data.ruta;
     showToast('Ruta publicada y guardada en la base de datos.');
   } catch { /* servidor no disponible: se publica solo en local */ }

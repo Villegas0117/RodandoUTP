@@ -47,7 +47,7 @@ tabRegister.addEventListener('click', () => cambiarPestana('registro'));
 async function revisarBackend() {
   try {
     const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
-    const respuesta = await fetch(`${API}/salud`, { credentials: 'include' });
+    const respuesta = await fetch(`${API}/salud`);
     if (!respuesta.ok) throw new Error();
     backendNote.textContent = 'Servidor conectado · base de datos PostgreSQL activa';
     backendNote.classList.add('ok');
@@ -79,13 +79,15 @@ loginForm.addEventListener('submit', async (evento) => {
   boton.textContent = 'Entrando…';
 
   try {
-    await api('/login', {
+    const datos = await api('/login', {
       method: 'POST',
       cuerpo: {
         correo: document.querySelector('#loginCorreo').value.trim(),
         password: document.querySelector('#loginPassword').value,
       },
     });
+    // Almacenar el token de sesion para peticiones posteriores
+    if (datos.token) setSessionToken(datos.token);
     mostrarToast('Sesión iniciada correctamente.');
     window.location.href = 'index.html';
   } catch (error) {
@@ -104,7 +106,7 @@ registerForm.addEventListener('submit', async (evento) => {
   boton.textContent = 'Creando cuenta…';
 
   try {
-    await api('/registro', {
+    const datos = await api('/registro', {
       method: 'POST',
       cuerpo: {
         nombre: document.querySelector('#regNombre').value.trim(),
@@ -114,6 +116,7 @@ registerForm.addEventListener('submit', async (evento) => {
         matricula: document.querySelector('#regMatricula').value.trim(),
       },
     });
+    if (datos.token) setSessionToken(datos.token);
     mostrarToast('¡Cuenta creada! Bienvenido a Rodando UTP.');
     window.location.href = 'index.html';
   } catch (error) {

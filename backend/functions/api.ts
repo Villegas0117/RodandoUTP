@@ -91,15 +91,14 @@ app.use('*', secureHeaders());
 app.use('*', cors({
   origin: (origin: string, c: any) => {
     const allowed = config.corsOrigin;
+    if (allowed === '*') return '*';
     if (!origin) return null;
-    if (allowed === '*') return origin;
-    // Permitir tanto GitHub Pages como Render
     const allowedOrigins = allowed.split(',').map(o => o.trim());
     if (allowedOrigins.includes(origin)) return origin;
     return null;
   },
-  credentials: true,
-  allowHeaders: ['Content-Type', 'Cookie'],
+  credentials: config.corsOrigin !== '*',
+  allowHeaders: ['Content-Type', 'Cookie', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
@@ -155,6 +154,13 @@ async function getSession(token: string | null): Promise<UsuarioSesion | null> {
 }
 
 function getCookieToken(c: any): string | null {
+  // Intenta obtener el token del encabezado Authorization: Bearer <token>
+  const authHeader = c.req.header('Authorization');
+  if (authHeader) {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (match) return match[1];
+  }
+  // Intenta obtener el token de la cookie
   const cookie = c.req.header('Cookie');
   if (!cookie) return null;
   const match = cookie.match(/(?:^|;\s*)rodando_sesion=([^;]+)/);
@@ -292,7 +298,7 @@ app.post('/api/registro', async (c) => {
   setSessionCookie(c, token, config.sessionMaxAgeMs / 1000);
 
   return c.json(
-    { ok: true, mensaje: 'Cuenta creada correctamente.', usuario },
+    { ok: true, token, mensaje: 'Cuenta creada correctamente.', usuario },
     201
   );
 });
@@ -330,7 +336,7 @@ app.post('/api/login', async (c) => {
 
   setSessionCookie(c, token, config.sessionMaxAgeMs / 1000);
 
-  return c.json({ ok: true, usuario });
+  return c.json({ ok: true, token, usuario });
 });
 
 // --------------------------------------------------------------------------

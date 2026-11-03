@@ -175,13 +175,22 @@ async function cargarCache() {
 
 const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
 
+/** Cabeceras con el token de sesion para peticiones autenticadas. */
+function authFetchHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (sessionToken) {
+    headers['Authorization'] = 'Bearer ' + sessionToken;
+  }
+  return headers;
+}
+
 /** Demuestra en vivo el MISS -> HIT y la revalidación 304. */
 document.querySelector('#cacheDemo')?.addEventListener('click', async () => {
   const salida = document.querySelector('#cacheDemoOut');
   const linea = [];
 
   for (let i = 1; i <= 2; i++) {
-    const respuesta = await fetch(`${API}/rutas`, { credentials: 'include' });
+    const respuesta = await fetch(`${API}/rutas`, { headers: authFetchHeaders() });
     const estado = respuesta.headers.get('X-Cache') || '(sin cabecera)';
     const etag = respuesta.headers.get('ETag') || '-';
     const bytes = (await respuesta.arrayBuffer()).byteLength;
@@ -189,11 +198,10 @@ document.querySelector('#cacheDemo')?.addEventListener('click', async () => {
   }
 
   // Tercera llamada: revalidación condicional con el ETag ya conocido.
-  const conEtag = await fetch(`${API}/rutas`, { credentials: 'include' });
+  const conEtag = await fetch(`${API}/rutas`, { headers: authFetchHeaders() });
   const etag = conEtag.headers.get('ETag');
   const revalidada = await fetch(`${API}/rutas`, {
-    credentials: 'include',
-    headers: { 'If-None-Match': etag },
+    headers: { 'If-None-Match': etag, ...authFetchHeaders() },
   });
   const bytes304 = (await revalidada.arrayBuffer()).byteLength;
   linea.push(`Revalidación (If-None-Match): HTTP ${revalidada.status}  |  ${bytes304} bytes de cuerpo`);
