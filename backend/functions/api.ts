@@ -635,6 +635,20 @@ app.post('/api/reservas', async (c) => {
 // Mis reservas
 // --------------------------------------------------------------------------
 
+app.post('/api/reservas/cancelar', async (c) => {
+  const usuario = await requireAuth(c);
+  if (!usuario) return c.json({ ok: false, error: 'Debes iniciar sesión.' }, 401);
+  const body = await c.req.json().catch(() => ({}));
+  const id = Number(body.id);
+  if (!Number.isSafeInteger(id) || id < 1) return c.json({ ok: false, error: 'Identificador inválido.' }, 400);
+  const rows = await query<{ id: number }>(
+    "UPDATE reservas SET estado = 'cancelada' WHERE id = $1 AND pasajero_id = $2 AND estado = 'confirmada' RETURNING id",
+    [id, usuario.id]
+  );
+  if (!rows.length) return c.json({ ok: false, error: 'Reserva activa no encontrada.' }, 404);
+  return c.json({ ok: true, mensaje: 'Reserva cancelada.' });
+});
+
 app.get('/api/mis-reservas', async (c) => {
   const usuario = await requireAuth(c);
   if (!usuario) {

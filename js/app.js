@@ -102,6 +102,15 @@ function updateNetworkStatus() {
 }
 
 routeSearch.addEventListener('submit', (event) => { event.preventDefault(); filterRoutes(); });
+document.querySelector('#castorForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  originFilter.value = document.querySelector('#castorZona').value;
+  timeFilter.value = document.querySelector('#castorTurno').value;
+  seatFilter.value = document.querySelector('#castorLugares').value;
+  filterRoutes();
+  document.querySelector('#castorRespuesta').textContent = 'Estas son las rutas disponibles que coinciden con tus respuestas. Selecciona una para reservar.';
+  document.querySelector('#rutas').scrollIntoView({ behavior: 'smooth' });
+});
 clearFilters.addEventListener('click', () => {
   originFilter.value = '';
   timeFilter.value = '';
@@ -234,13 +243,28 @@ async function cargarReservas() {
     rutasReservadas = new Set(data.reservas.filter(r => r.estado === 'confirmada').map(r => String(r.ruta_id)));
     filterRoutes();
     grid.innerHTML = data.reservas.length ? data.reservas.map(r =>
-      `<article class="route-card"><h3>${escapeHTML(r.origen)} → UTP</h3><p>Conductor: ${escapeHTML(r.conductor)}</p><p>Encuentro: ${escapeHTML(r.punto_encuentro)}</p><p>Salida: ${escapeHTML(r.salida)} · $${escapeHTML(r.aportacion)}</p><p>Estado: ${escapeHTML(r.estado)}</p></article>`
+      `<article class="route-card"><h3>${escapeHTML(r.origen)} → UTP</h3><p>Conductor: ${escapeHTML(r.conductor)}</p><p>Encuentro: ${escapeHTML(r.punto_encuentro)}</p><p>Salida: ${escapeHTML(r.salida)} · $${escapeHTML(r.aportacion)}</p><p>Estado: ${escapeHTML(r.estado)}</p>${r.estado === 'confirmada' ? `<button type="button" class="btn btn-outline" data-cancelar-reserva="${escapeHTML(r.id)}">Cancelar reserva</button>` : ''}</article>`
     ).join('') : '<div class="empty-state">Aún no tienes reservas.</div>';
   } catch (error) {
     grid.textContent = error.message || 'No se pudieron cargar las reservas. Comprueba tu conexión.';
   }
 }
 document.querySelector('#refreshReservas').addEventListener('click', cargarReservas);
+document.querySelector('#reservasGrid').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-cancelar-reserva]');
+  if (!button || !confirm('¿Quieres cancelar esta reserva?')) return;
+  button.disabled = true;
+  try {
+    const data = await api('/reservas/cancelar', { method: 'POST', cuerpo: { id: Number(button.dataset.cancelarReserva) } });
+    await Promise.all([cargarReservas(), loadRoutes()]);
+    filterRoutes();
+    if (typeof pedirSugerencias === 'function' && document.querySelector('#mapa-ia') && !document.querySelector('#mapa-ia').hidden) await pedirSugerencias();
+    showToast(data.mensaje);
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message || 'No se pudo cancelar la reserva.');
+  }
+});
 
 updateNetworkStatus();
 loadRoutes();

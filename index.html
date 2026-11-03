@@ -82,6 +82,17 @@
       <div class="routes-grid" id="reservasGrid" aria-live="polite">Cargando reservas…</div>
     </section>
 
+    <section class="search-panel shell" aria-labelledby="castorTitulo">
+      <div class="section-heading"><span class="eyebrow">Asistente simulado · sin IA externa</span><h2 id="castorTitulo">CastorUTP 🦫</h2><p>Te ayudaré a buscar un viaje. ¿Desde dónde sales y qué turno prefieres?</p></div>
+      <form id="castorForm" class="search-grid">
+        <label><span>¿Desde qué zona sales?</span><select id="castorZona" required><option value="">Selecciona</option><option>Cholula</option><option>Angelópolis</option><option>Amozoc</option><option>Centro</option><option>La Margarita</option></select></label>
+        <label><span>¿Qué turno prefieres?</span><select id="castorTurno"><option value="">Cualquiera</option><option value="morning">Matutino</option><option value="afternoon">Vespertino</option></select></label>
+        <label><span>¿Cuántos lugares necesitas?</span><select id="castorLugares"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+        <button class="btn btn-primary" type="submit">Buscar opciones</button>
+      </form>
+      <p id="castorRespuesta" role="status"></p>
+    </section>
+
     <section class="search-panel shell" id="rutas">
       <div class="section-heading compact-heading">
         <div>
