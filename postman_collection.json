@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Rodando UTP - API Neon Functions",
+    "description": "Colección para probar el backend de Rodando UTP desplegado en Neon Functions. Reemplaza {{api_url}} con tu URL real si es diferente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_url",
+      "value": "https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech",
+      "description": "URL de Neon Functions (backend)"
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "description": "Token de sesión (se llena automáticamente tras el login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "description": "ID del usuario autenticado"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "description": "Verifica que el backend esté operativo y conectado a PostgreSQL",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/api/health",
+          "host": ["{{api_url}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Debe responder {\"status\":\"ok\",\"database\":\"connected\"}"
+      }
+    },
+    {
+      "name": "2. Login (Estudiante)",
+      "description": "Inicia sesión con cuenta de estudiante y guarda la cookie de sesión",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"ana@rodandoutp.mx\",\n  \"password\": \"utp12345\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}/api/login",
+          "host": ["{{api_url}}"],
+          "path": ["api", "login"]
+        },
+        "description": "Debe responder 200 con ok: true y establecer cookie rodando_sesion"
+      }
+    },
+    {
+      "name": "3. Login (Administrador)",
+      "description": "Inicia sesión con cuenta de administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@rodandoutp.mx\",\n  \"password\": \"admin123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}/api/login",
+          "host": ["{{api_url}}"],
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "4. Ver Sesión Actual",
+      "description": "Consulta si hay una sesión activa usando la cookie guardada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/sesion",
+          "host": ["{{api_url}}"],
+          "path": ["api", "sesion"]
+        },
+        "description": "Debe responder con autenticado: true y los datos del usuario"
+      }
+    },
+    {
+      "name": "5. Listar Zonas",
+      "description": "Obtiene las 6 zonas disponibles (Cholula, Angelópolis, etc.)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/zonas",
+          "host": ["{{api_url}}"],
+          "path": ["api", "zonas"]
+        }
+      }
+    },
+    {
+      "name": "6. Listar Rutas",
+      "description": "Obtiene todas las rutas disponibles con filtros opcionales",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/rutas?origen=Cholula",
+          "host": ["{{api_url}}"],
+          "path": ["api", "rutas"],
+          "query": [
+            {
+              "key": "origen",
+              "value": "Cholula"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Detalle de Ruta",
+      "description": "Obtiene el detalle de una ruta específica por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/ruta?id=1",
+          "host": ["{{api_url}}"],
+          "path": ["api", "ruta"],
+          "query": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Reservar Lugar",
+      "description": "Reserva un lugar en una ruta (requiere sesión activa)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}/api/reservas",
+          "host": ["{{api_url}}"],
+          "path": ["api", "reservas"]
+        },
+        "description": "Requiere cookie de sesión válida. Reserva la ruta con id=1"
+      }
+    },
+    {
+      "name": "9. Mis Reservas",
+      "description": "Obtiene el historial de reservas del usuario autenticado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/mis-reservas",
+          "host": ["{{api_url}}"],
+          "path": ["api", "mis-reservas"]
+        },
+        "description": "Requiere sesión activa. Muestra las reservas del usuario"
+      }
+    },
+    {
+      "name": "10. Sugerencias IA",
+      "description": "Obtiene sugerencias de conductores cercanos (requiere sesión)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/ia/sugerir?zona=Cholula&turno=morning",
+          "host": ["{{api_url}}"],
+          "path": ["api", "ia", "sugerir"],
+          "query": [
+            {
+              "key": "zona",
+              "value": "Cholula"
+            },
+            {
+              "key": "turno",
+              "value": "morning"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "11. Panel Admin - Usuarios",
+      "description": "Lista todos los usuarios (requiere rol admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/api/admin/usuarios",
+          "host": ["{{api_url}}"],
+          "path": ["api", "admin", "usuarios"]
+        },
+        "description": "Requiere rol de administrador. Muestra todos los usuarios registrados"
+      }
+    },
+    {
+      "name": "12. Logout",
+      "description": "Cierra la sesión actual",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "https://rodando-utp.onrender.com"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}/api/logout",
+          "host": ["{{api_url}}"],
+          "path": ["api", "logout"]
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Configurar cookies para mantener la sesión entre peticiones",
+          "pm.sendRequest({",
+          "  url: '{{api_url}}/api/login',",
+          "  method: 'POST',",
+          "  header: {",
+          "    'Content-Type': 'application/json',",
+          "    'Origin': 'https://rodando-utp.onrender.com'",
+          "  },",
+          "  body: {",
+          "    mode: 'raw',",
+          "    raw: JSON.stringify({ correo: 'ana@rodandoutp.mx', password: 'utp12345' })",
+          "  }",
+          "}, function(err, res) {",
+          "  if (res) {",
+          "    var cookies = res.headers.getSetCookie || [];",
+          "    cookies.forEach(function(cookie) {",
+          "      var token = cookie.match(/rodando_sesion=([^;]+)/);",
+          "      if (token) {",
+          "        pm.environment.set('session_token', token[1]);",
+          "        console.log('Token de sesión guardado:', token[1]);",
+          "      }",
+          "    });",
+          "  }",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
