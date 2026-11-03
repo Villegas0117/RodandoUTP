@@ -497,8 +497,8 @@ app.post('/api/rutas', async (c) => {
   }
 
   const rows = await query<{ id: number }>(
-    `INSERT INTO rutas (conductor_id, origen, punto_encuentro, destino, salida, llegada, lugares, aportacion, calificacion, dias, creado_en, actualizado_en)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+    `INSERT INTO rutas (conductor_id, origen, punto_encuentro, destino, salida, llegada, lugares, aportacion, calificacion, dias, activa, creado_en)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, $11)
      RETURNING id`,
     [usuario.id, origen, punto, 'UTP', salida, llegada, lugares, aportacion, 5.0, 'Lun,Mar,Mié,Jue,Vie', nowIso()]
   );
