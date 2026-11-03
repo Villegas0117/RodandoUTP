@@ -86,7 +86,7 @@ function filterRoutes() {
 }
 
 async function loadRoutes() {
-  const API = window.RODANDO_API_URL || '/api';
+  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   // 1) Se intenta el backend (PostgreSQL via Neon Functions).
   // 2) Si el servidor no responde se cae al JSON estatico para que la PWA
   //    siga funcionando igual que antes.
@@ -141,7 +141,7 @@ document.addEventListener('click', async (event) => {
 
   // Con sesion iniciada la reserva se guarda en SQLite; sin servidor se mantiene
   // el comportamiento local para que la demo siga siendo navegable.
-  const API = window.RODANDO_API_URL || '/api';
+  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   try {
     const respuesta = await fetch(`${API}/reservas`, {
       method: 'POST',
@@ -180,7 +180,7 @@ publishForm.addEventListener('submit', async (event) => {
 
   let nuevaRuta = null;
 
-  const API = window.RODANDO_API_URL || '/api';
+  const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
   // Se intenta guardar en PostgreSQL (queda visible para toda la comunidad).
   try {
     const respuesta = await fetch(`${API}/rutas`, {

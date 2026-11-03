@@ -46,7 +46,7 @@ tabRegister.addEventListener('click', () => cambiarPestana('registro'));
 /** Comprueba que el backend este levantado para avisar al usuario. */
 async function revisarBackend() {
   try {
-    const API = window.RODANDO_API_URL || '/api';
+    const API = window.RODANDO_API_URL || 'https://br-sparkling-snow-b75n6yfe-api.compute.c-13.us-east-1.aws.neon.tech';
     const respuesta = await fetch(`${API}/salud`, { credentials: 'include' });
     if (!respuesta.ok) throw new Error();
     backendNote.textContent = 'Servidor conectado · base de datos PostgreSQL activa';
